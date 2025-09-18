@@ -53,3 +53,68 @@ Investor Document Studio is a single-page React + TypeScript application for cra
 - The app stores templates and preferences in `localStorage`; toggle the “ephemeral dataset” preference to avoid retaining imported data.
 
 Enjoy designing investor-ready documents in minutes! ✨
+
+## Environment setup (recommended)
+
+These steps make it easy to get a reproducible environment on macOS (zsh).
+
+- Recommended Node version: 18.x (the repo's tooling works with Node 18+). A `.nvmrc` file is provided.
+- The project supports both npm and Bun. Tests in this repo use `bun test` by default; the helper script below will use Bun when available and fall back to npm otherwise.
+
+1. Install Node (recommended via nvm) and switch to the project's Node version:
+
+```bash
+# install nvm if you don't have it: https://github.com/nvm-sh/nvm#install--update-script
+nvm install 18
+nvm use 18
+```
+
+2. Optional: install Bun (for faster installs and to run tests as authored):
+
+```bash
+curl -fsSL https://bun.sh/install | bash
+# restart your shell or run: source ~/.bun/bin/bun.sh
+```
+
+3. Use the included setup script to install dependencies (it prefers Bun if available):
+
+```bash
+chmod +x scripts/setup.sh
+./scripts/setup.sh
+```
+
+The script will run either `bun install` or `npm install` depending on what's available. If you'd rather run the package manager directly:
+
+```bash
+# with npm
+npm install
+
+# with bun
+bun install
+```
+
+4. Start the dev server:
+
+```bash
+npm run dev
+# or, if using bun to run scripts
+bun run dev
+```
+
+The app will be available at http://localhost:5173
+
+5. Run tests
+
+```bash
+# Tests are written for Bun. If you have Bun installed:
+bun test
+
+# If you do not have Bun, you can still run subset tests by installing a Node-based test runner
+# (e.g. vitest) and adding a test script — see Notes below.
+```
+
+Notes
+
+- The repo's `package.json` currently uses `bun test`. If you prefer Node-native tests, I can add a lightweight `vitest` setup and a `npm test` script — tell me if you'd like that.
+- If you see TypeScript errors from `tsc`, make sure devDependencies were installed and you're using Node 18+.
+
