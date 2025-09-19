@@ -123,7 +123,7 @@ const isBrowser = typeof window !== 'undefined';
 
 export const useAppStore = create<AppState>()(
   persist(
-    (set, get) => ({
+    (set, _get) => ({
       dataset: undefined,
       importIssues: [],
       headerReport: [],

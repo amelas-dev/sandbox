@@ -90,7 +90,7 @@ export function DocumentDesigner({ className, onEditorReady, droppableId = 'desi
               event.preventDefault();
               const firstField = dataset?.fields[0];
               if (firstField) {
-                editor?.chain().focus().command(({ tr }) => {
+                editor?.chain().focus().command(({ tr: _tr }) => {
                   editor.commands.insertContent({ type: 'mergeTag', attrs: { fieldKey: firstField.key, label: firstField.label } });
                   return true;
                 });

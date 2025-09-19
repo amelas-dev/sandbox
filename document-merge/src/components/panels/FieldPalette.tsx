@@ -4,6 +4,7 @@ import { GripVertical, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
 import {
   Tooltip,
   TooltipContent,
@@ -21,13 +22,33 @@ interface FieldPaletteProps {
   onInsertField: (fieldKey: string) => void;
 }
 
+function highlightMatch(text: string, query: string): React.ReactNode {
+  if (!query) return text;
+  const index = text.toLowerCase().indexOf(query.toLowerCase());
+  if (index === -1) return text;
+  const before = text.slice(0, index);
+  const match = text.slice(index, index + query.length);
+  const after = text.slice(index + query.length);
+  return (
+    <>
+      {before}
+      <mark className='rounded px-0.5 py-[1px] text-brand-700 bg-brand-100 dark:bg-brand-900/60 dark:text-brand-200'>{match}</mark>
+      {after}
+    </>
+  );
+}
+
 function FieldChip({
   fieldKey,
   label,
+  type,
+  query,
   onInsert,
 }: {
   fieldKey: string;
   label: string;
+  type: string;
+  query: string;
   onInsert: () => void;
 }) {
   const previewRow = useAppStore(selectPreviewRow);
@@ -37,6 +58,12 @@ function FieldChip({
       id: `field-${fieldKey}`,
       data: { fieldKey },
     });
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onInsert();
+    }
+  };
   return (
     <TooltipProvider>
       <Tooltip>
@@ -45,6 +72,7 @@ function FieldChip({
             ref={setNodeRef}
             type='button'
             onDoubleClick={onInsert}
+            onKeyDown={handleKeyDown}
             className={cn(
               'group flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 text-left text-sm shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900',
               isDragging && 'border-brand-500 ring-2 ring-brand-500',
@@ -61,13 +89,23 @@ function FieldChip({
             }
             {...listeners}
             {...attributes}
+            aria-label={`Merge field ${label}`}
           >
             <span className='flex min-w-0 flex-1 items-center gap-2'>
               <GripVertical className='h-4 w-4 shrink-0 text-slate-300 group-hover:text-brand-500' />
               <span className='min-w-0 break-words text-left font-medium text-slate-700 dark:text-slate-200'>
-                {label}
+                {highlightMatch(label, query)}
+                <span className='block text-xs font-normal text-slate-500 dark:text-slate-400'>
+                  {highlightMatch(fieldKey, query)}
+                </span>
               </span>
             </span>
+            <Badge
+              variant='outline'
+              className='ml-2 shrink-0 rounded-full border-slate-200 bg-slate-50 text-[10px] uppercase tracking-wide text-slate-500 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-300'
+            >
+              {type}
+            </Badge>
           </button>
         </TooltipTrigger>
         <TooltipContent className='max-w-xs'>
@@ -135,6 +173,8 @@ export function FieldPalette({ onInsertField }: FieldPaletteProps) {
               key={field.key}
               fieldKey={field.key}
               label={field.label}
+              type={field.type}
+              query={filter}
               onInsert={() => onInsertField(field.key)}
             />
           ))}
