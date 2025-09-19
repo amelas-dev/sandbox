@@ -8,6 +8,50 @@ export function RecordPreviewSelect() {
   const previewIndex = useAppStore((state) => state.previewIndex);
   const setPreviewIndex = useAppStore((state) => state.setPreviewIndex);
 
+  const optionLabels = React.useMemo(() => {
+    if (!dataset) {
+      return [] as string[];
+    }
+
+    const fieldKeys = dataset.fields.map((field) => field.key);
+
+    if (!fieldKeys.length) {
+      return dataset.rows.map((_row, index) => `Row ${index + 1}`);
+    }
+
+    const baseLabels = dataset.rows.map((row, index) => {
+      for (const key of fieldKeys) {
+        const rawValue = row[key];
+
+        if (rawValue === null || rawValue === undefined) {
+          continue;
+        }
+
+        const formatted = String(rawValue).trim();
+
+        if (formatted.length > 0) {
+          return formatted;
+        }
+      }
+
+      return `Row ${index + 1}`;
+    });
+
+    const labelCounts = new Map<string, number>();
+
+    return baseLabels.map((label) => {
+      const currentCount = labelCounts.get(label) ?? 0;
+      const nextCount = currentCount + 1;
+      labelCounts.set(label, nextCount);
+
+      if (currentCount === 0) {
+        return label;
+      }
+
+      return `${label} (${nextCount})`;
+    });
+  }, [dataset]);
+
   if (!dataset) {
     return (
       <div className="flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:w-auto">
@@ -26,13 +70,11 @@ export function RecordPreviewSelect() {
         value={previewIndex}
         onChange={(event) => setPreviewIndex(Number(event.target.value))}
       >
-        {dataset.rows.map((_row, index) => {
-          const labelField = dataset.fields.find((field) => /name/i.test(field.key))?.key;
-          const label = labelField ? String(dataset.rows[index][labelField] ?? `Record ${index + 1}`) : `Record ${index + 1}`;
-          return (
-            <option key={index} value={index}>{`${index + 1}. ${label}`}</option>
-          );
-        })}
+        {optionLabels.map((label, index) => (
+          <option key={index} value={index}>
+            {label}
+          </option>
+        ))}
       </select>
       <ChevronDown className="pointer-events-none absolute right-2 h-4 w-4 text-slate-400" />
     </div>
