@@ -40,7 +40,7 @@ function FieldChip({ fieldKey, label, onInsert }: { fieldKey: string; label: str
               <GripVertical className="h-4 w-4 text-slate-300 group-hover:text-brand-500" />
               <span className="font-medium text-slate-700 dark:text-slate-200">{label}</span>
             </span>
-            <Badge variant="outline">{{'{'}}{fieldKey}{'}'}</Badge>
+            <Badge variant="outline">{`{{${fieldKey}}}`}</Badge>
           </button>
         </TooltipTrigger>
         <TooltipContent className="max-w-xs">Sample value: {value || '—'}</TooltipContent>

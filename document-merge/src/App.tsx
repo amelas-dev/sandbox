@@ -115,7 +115,7 @@ export default function App() {
     (event: DragEndEvent) => {
       const fieldKey = event.active.data.current?.fieldKey as string | undefined;
       if (fieldKey && event.over?.id === DROPPABLE_ID) {
-        const sensorEvent = event.sensorEvent as PointerEvent | undefined;
+  const sensorEvent = (event as any).sensorEvent as PointerEvent | undefined;
         if (sensorEvent && 'clientX' in sensorEvent && 'clientY' in sensorEvent) {
           insertMergeTag(fieldKey, { x: sensorEvent.clientX, y: sensorEvent.clientY });
         } else {
@@ -236,8 +236,8 @@ export default function App() {
           <DragOverlay dropAnimation={null}>
             {draggedField ? (
               <div className="flex items-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-3 py-2 text-sm font-medium text-brand-700 shadow-lg">
-                <span>{draggedField.label}</span>
-                <Badge variant="outline">{{'{'}}{draggedField.key}{'}'}</Badge>
+                  <span>{draggedField.label}</span>
+                  <Badge variant="outline">{`{{${draggedField.key}}}`}</Badge>
               </div>
             ) : null}
           </DragOverlay>

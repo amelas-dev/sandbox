@@ -61,7 +61,7 @@ export function MergeTagView({ node, extension, updateAttributes, editor }: Node
                     : 'border-red-400 bg-red-50 text-red-700 dark:border-red-600 dark:bg-red-900/30 dark:text-red-200',
                 )}
               >
-                {{'{'}} {displayLabel}{' }'}
+                {`{{${displayLabel}}}`}
               </span>
             </TooltipTrigger>
           </DropdownMenuTrigger>

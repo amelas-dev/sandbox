@@ -122,7 +122,7 @@ export function GenerateDocumentsDialog({ open, onOpenChange }: GenerateDocument
                         updateGenerationOptions({
                           filter: {
                             ...(generationOptions.filter ?? { field: dataset.fields[0]?.key ?? '', value: '' }),
-                            op: event.target.value as typeof generationOptions.filter?.op,
+                            op: event.target.value as any,
                           },
                         })
                       }
@@ -143,7 +143,7 @@ export function GenerateDocumentsDialog({ open, onOpenChange }: GenerateDocument
                       updateGenerationOptions({
                         filter: {
                           ...(generationOptions.filter ?? { field: dataset.fields[0]?.key ?? '', op: 'eq' }),
-                          value: event.target.value,
+                          value: event.target.value as string,
                         },
                       })
                     }
@@ -161,7 +161,7 @@ export function GenerateDocumentsDialog({ open, onOpenChange }: GenerateDocument
                 placeholder="Welcome_{{InvestorName}}"
               />
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                Use merge tags like <code>{{'{InvestorName}'}}</code> to personalize file names.
+                Use merge tags like <code>{`{{InvestorName}}`}</code> to personalize file names.
               </p>
             </div>
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-300">
