@@ -7,18 +7,34 @@ const ScrollArea = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.Root>
 >(({ className, children, ...props }, ref) => (
   <ScrollAreaPrimitive.Root ref={ref} className={cn('relative overflow-hidden', className)} {...props}>
-    <ScrollAreaPrimitive.Viewport className="h-full w-full rounded inherit">
+    <ScrollAreaPrimitive.Viewport className="h-full w-full rounded-[inherit]">
       {children}
     </ScrollAreaPrimitive.Viewport>
-    <ScrollAreaPrimitive.Scrollbar
-      className="flex touch-none select-none rounded-full bg-slate-100 p-0.5 transition-colors hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700"
-      orientation="vertical"
-    >
-      <ScrollAreaPrimitive.Thumb className="relative flex-1 rounded-full bg-slate-400 dark:bg-slate-600" />
-    </ScrollAreaPrimitive.Scrollbar>
+    <ScrollBar />
     <ScrollAreaPrimitive.Corner className="bg-slate-100 dark:bg-slate-800" />
   </ScrollAreaPrimitive.Root>
 ));
 ScrollArea.displayName = ScrollAreaPrimitive.Root.displayName;
 
-export { ScrollArea };
+const ScrollBar = React.forwardRef<
+  React.ElementRef<typeof ScrollAreaPrimitive.Scrollbar>,
+  React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.Scrollbar>
+>(({ className, orientation = 'vertical', ...props }, ref) => (
+  <ScrollAreaPrimitive.Scrollbar
+    ref={ref}
+    orientation={orientation}
+    className={cn(
+      'flex touch-none select-none rounded-full bg-slate-100 transition-colors hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700',
+      orientation === 'vertical'
+        ? 'h-full w-2.5 border-l border-l-transparent p-0.5'
+        : 'h-2.5 w-full flex-col border-t border-t-transparent p-0.5',
+      className,
+    )}
+    {...props}
+  >
+    <ScrollAreaPrimitive.Thumb className="relative flex-1 rounded-full bg-slate-400 dark:bg-slate-600" />
+  </ScrollAreaPrimitive.Scrollbar>
+));
+ScrollBar.displayName = ScrollAreaPrimitive.Scrollbar.displayName;
+
+export { ScrollArea, ScrollBar };

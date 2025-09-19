@@ -10,7 +10,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { useAppStore } from '@/store/useAppStore';
 import {
@@ -228,60 +228,65 @@ export function DatasetImportDialog() {
               <Badge variant="outline">Showing first {Math.min(10, dataset.rows.length)} rows</Badge>
             </div>
             <ScrollArea className="max-h-64">
-              <table className="w-full border-collapse text-left text-xs">
-                <thead className="sticky top-0 bg-slate-100 text-[11px] uppercase tracking-wide dark:bg-slate-800">
-                  <tr>
-                    <th className="w-12 border border-slate-200 px-2 py-1 font-semibold text-slate-500 dark:border-slate-700">
-                      #
-                    </th>
-                    {dataset.fields.map((field) => (
-                      <th
-                        key={field.key}
-                        className="min-w-[140px] border border-slate-200 px-2 py-1 font-semibold text-slate-600 dark:border-slate-700"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="truncate" title={field.label}>
-                            {field.label}
-                          </span>
-                          <Badge
-                            variant="outline"
-                            className="shrink-0 rounded-full border-slate-300 bg-slate-50 px-2 py-0.5 text-[10px] uppercase text-slate-500 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300"
-                          >
-                            {field.type}
-                          </Badge>
-                        </div>
+              <div className="min-w-max">
+                <table className="w-full border-collapse text-left text-xs">
+                  <thead className="sticky top-0 bg-slate-100 text-[11px] uppercase tracking-wide dark:bg-slate-800">
+                    <tr>
+                      <th className="w-12 border border-slate-200 px-2 py-1 font-semibold text-slate-500 dark:border-slate-700">
+                        #
                       </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {datasetPreview(dataset, 10).map((row, rowIndex) => (
-                    <tr
-                      key={rowIndex}
-                      className="odd:bg-white even:bg-slate-50 dark:odd:bg-slate-900 dark:even:bg-slate-900/70"
-                    >
-                      <td className="border border-slate-200 px-2 py-1 text-slate-500 dark:border-slate-800">
-                        {rowIndex + 1}
-                      </td>
-                      {dataset.fields.map((field) => {
-                        const value = row[field.key];
-                        const text = value === null || value === undefined ? '' : String(value);
-                        return (
-                          <td
-                            key={field.key}
-                            className="border border-slate-200 px-2 py-1 align-top text-slate-700 dark:border-slate-800 dark:text-slate-200"
-                            title={text}
-                          >
-                            <span className="block max-h-20 overflow-auto whitespace-pre-wrap break-words">
-                              {text || <span className="text-slate-400">—</span>}
+                      {dataset.fields.map((field) => (
+                        <th
+                          key={field.key}
+                          className="min-w-[140px] border border-slate-200 px-2 py-1 font-semibold text-slate-600 dark:border-slate-700"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="truncate" title={field.label}>
+                              {field.label}
                             </span>
-                          </td>
-                        );
-                      })}
+                            <Badge
+                              variant="outline"
+                              className="shrink-0 rounded-full border-slate-300 bg-slate-50 px-2 py-0.5 text-[10px] uppercase text-slate-500 dark:border-slate-700 dark:bg-slate-800/80 dark:text-slate-300"
+                            >
+                              {field.type}
+                            </Badge>
+                          </div>
+                        </th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {datasetPreview(dataset, 10).map((row, rowIndex) => (
+                      <tr
+                        key={rowIndex}
+                        className="odd:bg-white even:bg-slate-50 dark:odd:bg-slate-900 dark:even:bg-slate-900/70"
+                      >
+                        <td className="border border-slate-200 px-2 py-1 text-slate-500 dark:border-slate-800">
+                          {rowIndex + 1}
+                        </td>
+                        {dataset.fields.map((field) => {
+                          const value = row[field.key];
+                          const text = value === null || value === undefined ? '' : String(value);
+                          return (
+                            <td
+                              key={field.key}
+                              className="border border-slate-200 px-2 py-1 align-top text-slate-700 dark:border-slate-800 dark:text-slate-200"
+                              title={text}
+                            >
+                              {text ? (
+                                <span className="block whitespace-pre-wrap break-words">{text}</span>
+                              ) : (
+                                <span className="text-slate-400">â€”</span>
+                              )}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <ScrollBar orientation="horizontal" />
             </ScrollArea>
           </div>
         )}
