@@ -1,6 +1,5 @@
 import * as React from 'react';
-import { useDraggable } from '@dnd-kit/core';
-import { GripVertical, Search } from 'lucide-react';
+import { MousePointerClick, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -53,11 +52,11 @@ function FieldChip({
 }) {
   const previewRow = useAppStore(selectPreviewRow);
   const value = previewRow ? String(previewRow[fieldKey] ?? '') : '';
-  const { attributes, listeners, setNodeRef, transform, isDragging } =
-    useDraggable({
-      id: `field-${fieldKey}`,
-      data: { fieldKey },
-    });
+  const handlePointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (event.pointerType !== 'touch') {
+      event.preventDefault();
+    }
+  };
   const handleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
@@ -69,30 +68,17 @@ function FieldChip({
       <Tooltip>
         <TooltipTrigger asChild>
           <button
-            ref={setNodeRef}
             type='button'
-            onDoubleClick={onInsert}
+            onClick={onInsert}
+            onPointerDown={handlePointerDown}
             onKeyDown={handleKeyDown}
             className={cn(
               'group flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 text-left text-sm shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900',
-              isDragging && 'border-brand-500 ring-2 ring-brand-500',
-              isDragging && 'pointer-events-none',
             )}
-            style={
-              isDragging
-                ? { opacity: 0 }
-                : transform
-                  ? {
-                      transform: `translate3d(${transform.x}px, ${transform.y}px, 0)`,
-                    }
-                  : undefined
-            }
-            {...listeners}
-            {...attributes}
             aria-label={`Merge field ${label}`}
           >
             <span className='flex min-w-0 flex-1 items-center gap-2'>
-              <GripVertical className='h-4 w-4 shrink-0 text-slate-300 group-hover:text-brand-500' />
+              <MousePointerClick className='h-4 w-4 shrink-0 text-slate-300 group-hover:text-brand-500' />
               <span className='min-w-0 break-words text-left font-medium text-slate-700 dark:text-slate-200'>
                 {highlightMatch(label, query)}
                 <span className='block text-xs font-normal text-slate-500 dark:text-slate-400'>
@@ -138,8 +124,8 @@ export function FieldPalette({ onInsertField }: FieldPaletteProps) {
           Import a dataset to begin
         </div>
         <p className='text-sm text-slate-500 dark:text-slate-400'>
-          Drag fields onto the canvas to create smart merge tags. You can also
-          double-click a field to insert it at the cursor.
+          Click fields to instantly insert smart merge tags wherever your
+          cursor is inside the document.
         </p>
       </div>
     );
