@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { useDroppable } from '@dnd-kit/core';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -35,18 +34,15 @@ function ptsToPx(value: number) {
 export interface DocumentDesignerProps {
   className?: string;
   onEditorReady?: (editor: Editor) => void;
-  droppableId?: string;
 }
 
-export function DocumentDesigner({ className, onEditorReady, droppableId = 'designer-canvas' }: DocumentDesignerProps) {
+export function DocumentDesigner({ className, onEditorReady }: DocumentDesignerProps) {
   const dataset = useAppStore(selectDataset);
   const template = useAppStore(selectTemplate);
   const previewIndex = useAppStore((state) => state.previewIndex);
   const setTemplateContent = useAppStore((state) => state.setTemplateContent);
   const zoom = useAppStore((state) => state.zoom);
   const showGrid = useAppStore((state) => state.showGrid);
-  const { setNodeRef } = useDroppable({ id: droppableId });
-
   const mergeTagExtension = React.useMemo(
     () =>
       MergeTag.configure({
@@ -146,7 +142,6 @@ export function DocumentDesigner({ className, onEditorReady, droppableId = 'desi
 
   return (
     <div
-      ref={setNodeRef}
       className={cn(
         'relative flex h-full w-full items-center justify-center overflow-auto bg-slate-100/70 p-4 sm:p-6',
         className,
