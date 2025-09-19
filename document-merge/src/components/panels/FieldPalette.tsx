@@ -1,7 +1,6 @@
 import * as React from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { GripVertical, Search } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -29,7 +28,7 @@ function FieldChip({ fieldKey, label, onInsert }: { fieldKey: string; label: str
             type="button"
             onDoubleClick={onInsert}
             className={cn(
-              'group flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 text-left text-sm shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900',
+              'group flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 text-left text-sm shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900',
               isDragging && 'border-brand-500 ring-2 ring-brand-500',
             )}
             style={{ transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined }}
@@ -40,9 +39,6 @@ function FieldChip({ fieldKey, label, onInsert }: { fieldKey: string; label: str
               <GripVertical className="h-4 w-4 shrink-0 text-slate-300 group-hover:text-brand-500" />
               <span className="min-w-0 break-words text-left font-medium text-slate-700 dark:text-slate-200">{label}</span>
             </span>
-            <Badge variant="outline" className="shrink-0 whitespace-nowrap">
-              {`{{${fieldKey}}}`}
-            </Badge>
           </button>
         </TooltipTrigger>
         <TooltipContent className="max-w-xs">Sample value: {value || '—'}</TooltipContent>
