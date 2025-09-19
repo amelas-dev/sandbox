@@ -8,6 +8,7 @@ import {
   KeyboardSensor,
   useSensor,
   useSensors,
+  rectIntersection,
 } from '@dnd-kit/core';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import type { Editor } from '@tiptap/core';
@@ -25,6 +26,27 @@ interface DraggedFieldState {
 
 const DROPPABLE_ID = 'designer-canvas';
 
+function extractPointerCoordinates(
+  event: unknown,
+): { x: number; y: number } | null {
+  if (!event || typeof event !== 'object') {
+    return null;
+  }
+  const pointerLike = event as { clientX?: unknown; clientY?: unknown };
+  if (
+    typeof pointerLike.clientX === 'number' &&
+    typeof pointerLike.clientY === 'number'
+  ) {
+    return { x: Number(pointerLike.clientX), y: Number(pointerLike.clientY) };
+  }
+  const touchEvent = event as TouchEvent;
+  const touch = touchEvent.changedTouches?.[0] ?? touchEvent.touches?.[0];
+  if (touch) {
+    return { x: touch.clientX, y: touch.clientY };
+  }
+  return null;
+}
+
 const FOOTER_TIPS = [
   'Double-click a field to drop a merge tag at your cursor.',
   'Use Cmd/Ctrl+E to open the quick merge tag inserter.',
@@ -39,16 +61,23 @@ export default function App() {
   const autosaveEnabled = useAppStore((state) => state.preferences.autosave);
   const fields = useAppStore(selectFieldPalette);
   const [editor, setEditor] = React.useState<Editor | null>(null);
-  const [draggedField, setDraggedField] = React.useState<DraggedFieldState | null>(null);
+  const [draggedField, setDraggedField] =
+    React.useState<DraggedFieldState | null>(null);
   const [saveState, setSaveState] = React.useState<'idle' | 'saving' | 'saved'>(
     autosaveEnabled ? 'saved' : 'idle',
   );
   const [lastSavedAt, setLastSavedAt] = React.useState<number | null>(null);
-  const [stats, setStats] = React.useState<{ words: number; characters: number }>({
+  const [stats, setStats] = React.useState<{
+    words: number;
+    characters: number;
+  }>({
     words: 0,
     characters: 0,
   });
   const saveTimerRef = React.useRef<number | undefined>();
+  const pointerPositionRef = React.useRef<{ x: number; y: number } | null>(
+    null,
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -77,7 +106,10 @@ export default function App() {
       const label = fieldLookup.get(fieldKey) ?? fieldKey;
       let inserted = false;
       if (coordinates) {
-        const resolved = editor.view.posAtCoords({ left: coordinates.x, top: coordinates.y });
+        const resolved = editor.view.posAtCoords({
+          left: coordinates.x,
+          top: coordinates.y,
+        });
         if (resolved?.pos != null) {
           editor
             .chain()
@@ -103,7 +135,13 @@ export default function App() {
 
   const handleDragStart = React.useCallback(
     (event: DragStartEvent) => {
-      const fieldKey = event.active.data.current?.fieldKey as string | undefined;
+      const pointer = extractPointerCoordinates(event.activatorEvent);
+      if (pointer) {
+        pointerPositionRef.current = pointer;
+      }
+      const fieldKey = event.active.data.current?.fieldKey as
+        | string
+        | undefined;
       if (!fieldKey) return;
       const label = fieldLookup.get(fieldKey) ?? fieldKey;
       setDraggedField({ key: fieldKey, label });
@@ -113,23 +151,76 @@ export default function App() {
 
   const handleDragEnd = React.useCallback(
     (event: DragEndEvent) => {
-      const fieldKey = event.active.data.current?.fieldKey as string | undefined;
+      const fieldKey = event.active.data.current?.fieldKey as
+        | string
+        | undefined;
       if (fieldKey && event.over?.id === DROPPABLE_ID) {
-  const sensorEvent = (event as any).sensorEvent as PointerEvent | undefined;
-        if (sensorEvent && 'clientX' in sensorEvent && 'clientY' in sensorEvent) {
-          insertMergeTag(fieldKey, { x: sensorEvent.clientX, y: sensorEvent.clientY });
+        const pointerPosition =
+          pointerPositionRef.current ??
+          (() => {
+            const startPointer = extractPointerCoordinates(
+              event.activatorEvent,
+            );
+            if (!startPointer) {
+              return null;
+            }
+            return {
+              x: startPointer.x + event.delta.x,
+              y: startPointer.y + event.delta.y,
+            };
+          })();
+
+        if (pointerPosition) {
+          insertMergeTag(fieldKey, pointerPosition);
         } else {
-          insertMergeTag(fieldKey);
+          const activeRect = event.active.rect.current;
+          const rect = (activeRect.translated ??
+            activeRect.initial) as ClientRect | null;
+          if (rect) {
+            insertMergeTag(fieldKey, {
+              x: rect.left + rect.width / 2,
+              y: rect.top + rect.height / 2,
+            });
+          } else {
+            insertMergeTag(fieldKey);
+          }
         }
       }
       setDraggedField(null);
+      pointerPositionRef.current = null;
     },
     [insertMergeTag],
   );
 
   const handleDragCancel = React.useCallback(() => {
     setDraggedField(null);
+    pointerPositionRef.current = null;
   }, []);
+
+  React.useEffect(() => {
+    if (!draggedField) {
+      return undefined;
+    }
+
+    const handlePointerMove = (event: PointerEvent | MouseEvent) => {
+      pointerPositionRef.current = { x: event.clientX, y: event.clientY };
+    };
+
+    const handleTouchMove = (event: TouchEvent) => {
+      const touch = event.changedTouches?.[0] ?? event.touches?.[0];
+      if (touch) {
+        pointerPositionRef.current = { x: touch.clientX, y: touch.clientY };
+      }
+    };
+
+    window.addEventListener('pointermove', handlePointerMove, true);
+    window.addEventListener('touchmove', handleTouchMove, true);
+
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove, true);
+      window.removeEventListener('touchmove', handleTouchMove, true);
+    };
+  }, [draggedField]);
 
   const handleInsertField = React.useCallback(
     (fieldKey: string) => {
@@ -196,66 +287,80 @@ export default function App() {
   }, [fields.length, previewIndex]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-white to-slate-100/60 pb-10 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-      <div className="mx-auto flex min-h-screen w-full max-w-screen-2xl flex-col gap-6 px-4 pt-6 sm:px-6 lg:gap-8">
+    <div className='min-h-screen bg-gradient-to-br from-slate-100 via-white to-slate-100/60 pb-10 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950'>
+      <div className='mx-auto flex min-h-screen w-full max-w-screen-2xl flex-col gap-6 px-4 pt-6 sm:px-6 lg:gap-8'>
         <AppHeader />
         <DndContext
           sensors={sensors}
+          collisionDetection={rectIntersection}
           onDragStart={handleDragStart}
           onDragEnd={handleDragEnd}
           onDragCancel={handleDragCancel}
         >
-          <div className="grid flex-1 grid-cols-1 items-start gap-4 lg:[grid-template-columns:320px_minmax(0,1fr)] xl:[grid-template-columns:320px_minmax(0,1fr)_360px] 2xl:[grid-template-columns:340px_minmax(0,1fr)_380px]">
-            <aside className="order-1 flex min-h-[220px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/80 lg:sticky lg:top-24 lg:max-h-[calc(100vh-12rem)]">
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          <div className='grid flex-1 grid-cols-1 items-start gap-4 lg:[grid-template-columns:320px_minmax(0,1fr)] xl:[grid-template-columns:320px_minmax(0,1fr)_360px] 2xl:[grid-template-columns:340px_minmax(0,1fr)_380px]'>
+            <aside className='order-1 flex min-h-[220px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/80 lg:sticky lg:top-24 lg:max-h-[calc(100vh-12rem)]'>
+              <div className='mb-4 flex flex-wrap items-center justify-between gap-2'>
+                <h2 className='text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400'>
                   Field palette
                 </h2>
-                {dataset && <Badge variant="outline">{dataset.fields.length} fields</Badge>}
+                {dataset && (
+                  <Badge variant='outline'>
+                    {dataset.fields.length} fields
+                  </Badge>
+                )}
               </div>
               <FieldPalette onInsertField={handleInsertField} />
             </aside>
-            <main className="order-2 flex min-h-[420px] min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/95 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/80 lg:min-h-[560px]">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-3 text-xs uppercase tracking-wide text-slate-400 dark:border-slate-800 dark:text-slate-500 sm:px-6">
+            <main className='order-2 flex min-h-[420px] min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/95 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/80 lg:min-h-[560px]'>
+              <div className='flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-3 text-xs uppercase tracking-wide text-slate-400 dark:border-slate-800 dark:text-slate-500 sm:px-6'>
                 <span>Document designer</span>
-                <span className="flex items-center gap-1 whitespace-nowrap">
+                <span className='flex items-center gap-1 whitespace-nowrap'>
                   <span>Page {template.page.size}</span>
-                  <span aria-hidden="true">•</span>
-                  <span className="capitalize">{template.page.orientation}</span>
+                  <span aria-hidden='true'>•</span>
+                  <span className='capitalize'>
+                    {template.page.orientation}
+                  </span>
                 </span>
               </div>
-              <div className="flex-1">
-                <DocumentDesigner droppableId={DROPPABLE_ID} onEditorReady={handleEditorReady} className="h-full" />
+              <div className='flex-1'>
+                <DocumentDesigner
+                  droppableId={DROPPABLE_ID}
+                  onEditorReady={handleEditorReady}
+                  className='h-full'
+                />
               </div>
             </main>
-            <aside className="order-3 flex min-h-[220px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/80 lg:col-span-2 lg:flex-row lg:gap-6 lg:py-6 xl:col-span-1 xl:flex-col xl:gap-0 xl:py-5">
-              <div className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 lg:mb-0 lg:w-44 xl:mb-4 xl:w-full">
+            <aside className='order-3 flex min-h-[220px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/80 lg:col-span-2 lg:flex-row lg:gap-6 lg:py-6 xl:col-span-1 xl:flex-col xl:gap-0 xl:py-5'>
+              <div className='mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 lg:mb-0 lg:w-44 xl:mb-4 xl:w-full'>
                 Properties
               </div>
-              <div className="flex-1">
+              <div className='flex-1'>
                 <PropertiesPanel />
               </div>
             </aside>
           </div>
           <DragOverlay dropAnimation={null}>
             {draggedField ? (
-              <div className="flex items-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-3 py-2 text-sm font-medium text-brand-700 shadow-lg">
+              <div className='pointer-events-none z-[1000] flex items-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-3 py-2 text-sm font-medium text-brand-700 shadow-lg'>
                 <span>{draggedField.label}</span>
-                <Badge variant="outline">{`{{${draggedField.key}}}`}</Badge>
               </div>
             ) : null}
           </DragOverlay>
         </DndContext>
-        <footer className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white/95 px-4 py-4 text-sm shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/85 md:flex-row md:items-center md:justify-between">
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-slate-600 dark:text-slate-300">
-            <span>Words: <strong>{stats.words}</strong></span>
-            <span>Characters: <strong>{stats.characters}</strong></span>
+        <footer className='flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white/95 px-4 py-4 text-sm shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/85 md:flex-row md:items-center md:justify-between'>
+          <div className='flex flex-wrap items-center gap-x-6 gap-y-2 text-slate-600 dark:text-slate-300'>
+            <span>
+              Words: <strong>{stats.words}</strong>
+            </span>
+            <span>
+              Characters: <strong>{stats.characters}</strong>
+            </span>
             <span>
               Canvas: {template.page.size} • {template.page.orientation}
             </span>
             {dataset && <span>{dataset.rows.length} records</span>}
           </div>
-          <div className="flex flex-wrap items-center gap-4 text-slate-500 dark:text-slate-400">
+          <div className='flex flex-wrap items-center gap-4 text-slate-500 dark:text-slate-400'>
             {autosaveEnabled ? (
               <span>
                 {saveState === 'saving' ? 'Saving…' : 'All changes saved'}
@@ -266,10 +371,10 @@ export default function App() {
             ) : (
               <span>Autosave disabled</span>
             )}
-            <span className="hidden md:inline" aria-hidden="true">
+            <span className='hidden md:inline' aria-hidden='true'>
               •
             </span>
-            <span className="max-w-md text-ellipsis text-slate-600 dark:text-slate-300 md:text-right">
+            <span className='max-w-md text-ellipsis text-slate-600 dark:text-slate-300 md:text-right'>
               {footerTip}
             </span>
           </div>
