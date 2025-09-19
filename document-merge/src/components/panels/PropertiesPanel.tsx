@@ -26,9 +26,9 @@ export function PropertiesPanel() {
   };
 
   return (
-    <div className="flex h-full flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-      <Tabs defaultValue="layout">
-        <TabsList className="w-full justify-start">
+    <div className="flex h-full min-h-0 flex-col gap-4">
+      <Tabs defaultValue="layout" className="flex h-full flex-col">
+        <TabsList className="w-full justify-start overflow-x-auto">
           <TabsTrigger value="layout" className="gap-2">
             <Ruler className="h-4 w-4" /> Layout
           </TabsTrigger>
@@ -39,12 +39,13 @@ export function PropertiesPanel() {
             <Type className="h-4 w-4" /> Typography
           </TabsTrigger>
         </TabsList>
-        <TabsContent value="layout" className="mt-4 space-y-4">
-          <div>
-            <Label className="text-xs uppercase tracking-wide text-slate-400">Page size</Label>
-            <ToggleGroup
-              type="single"
-              value={template.page.size}
+        <div className="flex-1 overflow-y-auto pt-1">
+          <TabsContent value="layout" className="space-y-4 pr-1">
+            <div>
+              <Label className="text-xs uppercase tracking-wide text-slate-400">Page size</Label>
+              <ToggleGroup
+                type="single"
+                value={template.page.size}
               onValueChange={(value) =>
                 value &&
                 updateTemplate({
@@ -104,26 +105,26 @@ export function PropertiesPanel() {
               {showGrid ? 'On' : 'Off'}
             </Button>
           </div>
-          <div className="space-y-2 rounded-xl border border-slate-200 px-3 py-2 text-sm dark:border-slate-800">
-            <div className="flex items-center justify-between">
-              <span>Zoom</span>
-              <span>{Math.round(zoom * 100)}%</span>
+            <div className="space-y-2 rounded-xl border border-slate-200 px-3 py-2 text-sm dark:border-slate-800">
+              <div className="flex items-center justify-between">
+                <span>Zoom</span>
+                <span>{Math.round(zoom * 100)}%</span>
+              </div>
+              <Slider
+                value={[zoom * 100]}
+                onValueChange={(value) => setZoom((value[0] ?? zoom * 100) / 100)}
+                min={50}
+                max={200}
+                step={10}
+              />
             </div>
-            <Slider
-              value={[zoom * 100]}
-              onValueChange={(value) => setZoom((value[0] ?? zoom * 100) / 100)}
-              min={50}
-              max={200}
-              step={10}
-            />
-          </div>
-        </TabsContent>
-        <TabsContent value="style" className="mt-4 space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="fontFamily">Font family</Label>
-            <Input
-              id="fontFamily"
-              value={template.styles.fontFamily}
+          </TabsContent>
+          <TabsContent value="style" className="space-y-4 pr-1">
+            <div className="space-y-2">
+              <Label htmlFor="fontFamily">Font family</Label>
+              <Input
+                id="fontFamily"
+                value={template.styles.fontFamily}
               onChange={(event) => updateTemplate({ styles: { fontFamily: event.target.value } })}
             />
           </div>
@@ -147,14 +148,14 @@ export function PropertiesPanel() {
               max={24}
             />
             <div className="text-xs text-slate-500">{template.styles.baseFontSize}px</div>
-          </div>
-        </TabsContent>
-        <TabsContent value="document" className="mt-4 space-y-4">
-          <div className="space-y-2">
-            <Label>Heading weight</Label>
-            <ToggleGroup type="single" className="mt-1" value="700">
-              <ToggleGroupItem value="600">Semi-bold</ToggleGroupItem>
-              <ToggleGroupItem value="700">Bold</ToggleGroupItem>
+            </div>
+          </TabsContent>
+          <TabsContent value="document" className="space-y-4 pr-1">
+            <div className="space-y-2">
+              <Label>Heading weight</Label>
+              <ToggleGroup type="single" className="mt-1" value="700">
+                <ToggleGroupItem value="600">Semi-bold</ToggleGroupItem>
+                <ToggleGroupItem value="700">Bold</ToggleGroupItem>
               <ToggleGroupItem value="800">Extra-bold</ToggleGroupItem>
             </ToggleGroup>
             <p className="text-xs text-slate-500">
@@ -165,8 +166,9 @@ export function PropertiesPanel() {
             <Label>Paragraph spacing</Label>
             <Slider value={[14]} min={8} max={32} disabled />
             <p className="text-xs text-slate-400">Advanced spacing presets coming soon.</p>
-          </div>
-        </TabsContent>
+            </div>
+          </TabsContent>
+        </div>
       </Tabs>
     </div>
   );

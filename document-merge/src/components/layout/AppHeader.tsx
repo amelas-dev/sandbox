@@ -26,41 +26,45 @@ export function AppHeader() {
   };
 
   return (
-    <header className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white/80 px-6 py-4 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-600 text-white shadow-lg">
+    <header className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white/85 px-4 py-4 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/80 sm:px-6 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex items-start gap-3 sm:items-center">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-600 text-white shadow-lg sm:h-10 sm:w-10">
           <FileText className="h-5 w-5" />
         </div>
-        <div>
-          <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-50">Investor Document Studio</h1>
+        <div className="min-w-0">
+          <h1 className="text-lg font-semibold text-slate-900 dark:text-slate-50 md:text-xl">Investor Document Studio</h1>
           <p className="text-xs text-slate-500 dark:text-slate-400">Design once, personalize for every investor.</p>
         </div>
       </div>
-      <div className="flex items-center gap-3">
-        <RecordPreviewSelect />
-        <DatasetImportDialog />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="gap-2">
-              <Settings2 className="h-4 w-4" /> Template
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem onSelect={handleExportTemplate}>
-              <Save className="mr-2 h-4 w-4" /> Export template
-            </DropdownMenuItem>
-            <DropdownMenuItem onSelect={handleImportTemplate}>
-              <Upload className="mr-2 h-4 w-4" /> Import template
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <Button
-          className="gap-2"
-          disabled={!dataset}
-          onClick={() => setOpenGenerate(true)}
-        >
-          <FileText className="h-4 w-4" /> Generate
-        </Button>
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
+          <RecordPreviewSelect />
+          <DatasetImportDialog />
+        </div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" className="w-full gap-2 sm:w-auto">
+                <Settings2 className="h-4 w-4" /> Template
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem onSelect={handleExportTemplate}>
+                <Save className="mr-2 h-4 w-4" /> Export template
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={handleImportTemplate}>
+                <Upload className="mr-2 h-4 w-4" /> Import template
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button
+            className="w-full gap-2 sm:w-auto"
+            disabled={!dataset}
+            onClick={() => setOpenGenerate(true)}
+          >
+            <FileText className="h-4 w-4" /> Generate
+          </Button>
+        </div>
       </div>
       <GenerateDocumentsDialog open={openGenerate} onOpenChange={setOpenGenerate} />
     </header>

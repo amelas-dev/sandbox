@@ -10,7 +10,7 @@ export function RecordPreviewSelect() {
 
   if (!dataset) {
     return (
-      <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="flex w-full items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-500 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:w-auto">
         <ChevronDown className="h-4 w-4 opacity-0" />
         <span>No dataset loaded</span>
       </div>
@@ -18,10 +18,10 @@ export function RecordPreviewSelect() {
   }
 
   return (
-    <div className="relative inline-flex items-center">
+    <div className="relative inline-flex w-full items-center sm:w-auto">
       <select
         className={cn(
-          'appearance-none rounded-xl border border-slate-200 bg-white px-3 py-2 pr-8 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-800 dark:bg-slate-900',
+          'w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 py-2 pr-8 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-slate-800 dark:bg-slate-900',
         )}
         value={previewIndex}
         onChange={(event) => setPreviewIndex(Number(event.target.value))}

@@ -116,7 +116,7 @@ export function DocumentDesigner({ className, onEditorReady, droppableId = 'desi
         lineHeight: 1.6,
         color: template.styles.theme === 'dark' ? 'rgb(226 232 240)' : 'inherit',
     }), [template.styles.fontFamily, template.styles.baseFontSize, template.styles.theme]);
-    return (_jsx("div", { ref: setNodeRef, className: cn('relative flex h-full w-full items-center justify-center overflow-auto bg-slate-100/70 p-6', className), children: _jsxs("div", { className: cn('relative rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-950'), style: {
+    return (_jsx("div", { ref: setNodeRef, className: cn('relative flex h-full w-full items-center justify-center overflow-auto bg-slate-100/70 p-4 sm:p-6', className), children: _jsxs("div", { className: cn('relative max-w-full rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-950'), style: {
                 width: `${pageWidth}px`,
                 height: `${pageHeight}px`,
                 transform: `scale(${zoom})`,

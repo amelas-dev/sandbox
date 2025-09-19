@@ -27,7 +27,7 @@ const DROPPABLE_ID = 'designer-canvas';
 
 const FOOTER_TIPS = [
   'Double-click a field to drop a merge tag at your cursor.',
-  'Use ⌘/Ctrl+E to open the quick merge tag inserter.',
+  'Use Cmd/Ctrl+E to open the quick merge tag inserter.',
   'Right-click any merge tag to rename, copy, or remove it.',
   'Use the properties panel to adjust page size, margins, and zoom.',
 ];
@@ -196,8 +196,8 @@ export default function App() {
   }, [fields.length, previewIndex]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-white to-slate-100/60 pb-8 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
-      <div className="mx-auto flex min-h-screen max-w-[1600px] flex-col gap-4 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-white to-slate-100/60 pb-10 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950">
+      <div className="mx-auto flex min-h-screen w-full max-w-screen-2xl flex-col gap-6 px-4 pt-6 sm:px-6 lg:gap-8">
         <AppHeader />
         <DndContext
           sensors={sensors}
@@ -205,9 +205,9 @@ export default function App() {
           onDragEnd={handleDragEnd}
           onDragCancel={handleDragCancel}
         >
-          <div className="grid flex-1 gap-4 xl:grid-cols-[300px_minmax(0,1fr)_320px]">
-            <aside className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
-              <div className="mb-4 flex items-center justify-between">
+          <div className="grid flex-1 grid-cols-1 items-start gap-4 lg:[grid-template-columns:minmax(0,280px)_minmax(0,1fr)] xl:[grid-template-columns:minmax(0,280px)_minmax(0,1fr)_minmax(0,320px)]">
+            <aside className="order-1 flex min-h-[220px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/80 lg:sticky lg:top-24 lg:max-h-[calc(100vh-10rem)]">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
                   Field palette
                 </h2>
@@ -215,39 +215,43 @@ export default function App() {
               </div>
               <FieldPalette onInsertField={handleInsertField} />
             </aside>
-            <main className="flex min-h-[600px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/90 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
-              <div className="flex items-center justify-between border-b border-slate-200 px-6 py-3 text-xs uppercase tracking-wide text-slate-400 dark:border-slate-800 dark:text-slate-500">
+            <main className="order-2 flex min-h-[420px] min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/95 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/80 lg:min-h-[560px]">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-3 text-xs uppercase tracking-wide text-slate-400 dark:border-slate-800 dark:text-slate-500 sm:px-6">
                 <span>Document designer</span>
-                <span>
-                  Page {template.page.size} · {template.page.orientation}
+                <span className="flex items-center gap-1 whitespace-nowrap">
+                  <span>Page {template.page.size}</span>
+                  <span aria-hidden="true">•</span>
+                  <span className="capitalize">{template.page.orientation}</span>
                 </span>
               </div>
               <div className="flex-1">
                 <DocumentDesigner droppableId={DROPPABLE_ID} onEditorReady={handleEditorReady} className="h-full" />
               </div>
             </main>
-            <aside className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
-              <div className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+            <aside className="order-3 flex min-h-[220px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/80 lg:col-span-2 lg:flex-row lg:gap-6 lg:py-6 xl:col-span-1 xl:flex-col xl:gap-0 xl:py-4">
+              <div className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 lg:mb-0 lg:w-40 xl:mb-4 xl:w-full">
                 Properties
               </div>
-              <PropertiesPanel />
+              <div className="flex-1">
+                <PropertiesPanel />
+              </div>
             </aside>
           </div>
           <DragOverlay dropAnimation={null}>
             {draggedField ? (
               <div className="flex items-center gap-2 rounded-xl border border-brand-200 bg-brand-50 px-3 py-2 text-sm font-medium text-brand-700 shadow-lg">
-                  <span>{draggedField.label}</span>
-                  <Badge variant="outline">{`{{${draggedField.key}}}`}</Badge>
+                <span>{draggedField.label}</span>
+                <Badge variant="outline">{`{{${draggedField.key}}}`}</Badge>
               </div>
             ) : null}
           </DragOverlay>
         </DndContext>
-        <footer className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white/90 px-4 py-3 text-sm shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/80 md:flex-row md:items-center md:justify-between">
+        <footer className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white/95 px-4 py-4 text-sm shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/85 md:flex-row md:items-center md:justify-between">
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-slate-600 dark:text-slate-300">
             <span>Words: <strong>{stats.words}</strong></span>
             <span>Characters: <strong>{stats.characters}</strong></span>
             <span>
-              Canvas: {template.page.size} · {template.page.orientation}
+              Canvas: {template.page.size} • {template.page.orientation}
             </span>
             {dataset && <span>{dataset.rows.length} records</span>}
           </div>
@@ -256,14 +260,14 @@ export default function App() {
               <span>
                 {saveState === 'saving' ? 'Saving…' : 'All changes saved'}
                 {saveState === 'saved' && lastSavedAt
-                  ? ` · ${new Date(lastSavedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                  ? ` • ${new Date(lastSavedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
                   : null}
               </span>
             ) : (
               <span>Autosave disabled</span>
             )}
             <span className="hidden md:inline" aria-hidden="true">
-              ·
+              •
             </span>
             <span className="max-w-md text-ellipsis text-slate-600 dark:text-slate-300 md:text-right">
               {footerTip}

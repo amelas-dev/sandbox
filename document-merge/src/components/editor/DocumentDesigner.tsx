@@ -147,10 +147,15 @@ export function DocumentDesigner({ className, onEditorReady, droppableId = 'desi
   return (
     <div
       ref={setNodeRef}
-      className={cn('relative flex h-full w-full items-center justify-center overflow-auto bg-slate-100/70 p-6', className)}
+      className={cn(
+        'relative flex h-full w-full items-center justify-center overflow-auto bg-slate-100/70 p-4 sm:p-6',
+        className,
+      )}
     >
       <div
-        className={cn('relative rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-950')}
+        className={cn(
+          'relative max-w-full rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-950',
+        )}
         style={{
           width: `${pageWidth}px`,
           height: `${pageHeight}px`,

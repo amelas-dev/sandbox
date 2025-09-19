@@ -36,9 +36,9 @@ function FieldChip({ fieldKey, label, onInsert }: { fieldKey: string; label: str
             {...listeners}
             {...attributes}
           >
-            <span className="flex items-center gap-2">
+            <span className="flex items-center gap-2 overflow-hidden">
               <GripVertical className="h-4 w-4 text-slate-300 group-hover:text-brand-500" />
-              <span className="font-medium text-slate-700 dark:text-slate-200">{label}</span>
+              <span className="truncate font-medium text-slate-700 dark:text-slate-200">{label}</span>
             </span>
             <Badge variant="outline">{`{{${fieldKey}}}`}</Badge>
           </button>
