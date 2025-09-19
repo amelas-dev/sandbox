@@ -29,18 +29,20 @@ function FieldChip({ fieldKey, label, onInsert }: { fieldKey: string; label: str
             type="button"
             onDoubleClick={onInsert}
             className={cn(
-              'group flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-left text-sm shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900',
+              'group flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 text-left text-sm shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900',
               isDragging && 'border-brand-500 ring-2 ring-brand-500',
             )}
             style={{ transform: transform ? `translate3d(${transform.x}px, ${transform.y}px, 0)` : undefined }}
             {...listeners}
             {...attributes}
           >
-            <span className="flex items-center gap-2 overflow-hidden">
-              <GripVertical className="h-4 w-4 text-slate-300 group-hover:text-brand-500" />
-              <span className="truncate font-medium text-slate-700 dark:text-slate-200">{label}</span>
+            <span className="flex min-w-0 flex-1 items-center gap-2">
+              <GripVertical className="h-4 w-4 shrink-0 text-slate-300 group-hover:text-brand-500" />
+              <span className="min-w-0 break-words text-left font-medium text-slate-700 dark:text-slate-200">{label}</span>
             </span>
-            <Badge variant="outline">{`{{${fieldKey}}}`}</Badge>
+            <Badge variant="outline" className="shrink-0 whitespace-nowrap">
+              {`{{${fieldKey}}}`}
+            </Badge>
           </button>
         </TooltipTrigger>
         <TooltipContent className="max-w-xs">Sample value: {value || '—'}</TooltipContent>

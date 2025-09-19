@@ -28,7 +28,7 @@ export function PropertiesPanel() {
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
       <Tabs defaultValue="layout" className="flex h-full flex-col">
-        <TabsList className="w-full justify-start overflow-x-auto">
+        <TabsList className="w-full justify-start">
           <TabsTrigger value="layout" className="gap-2">
             <Ruler className="h-4 w-4" /> Layout
           </TabsTrigger>
