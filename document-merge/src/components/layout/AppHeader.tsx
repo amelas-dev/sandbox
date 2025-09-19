@@ -7,12 +7,28 @@ import { RecordPreviewSelect } from '@/components/preview/RecordPreviewSelect';
 import { useAppStore } from '@/store/useAppStore';
 import { exportTemplate, importTemplate } from '@/lib/template-sharing';
 import { GenerateDocumentsDialog } from '@/components/exporter/GenerateDocumentsDialog';
+import { Badge } from '@/components/ui/badge';
 
 export function AppHeader() {
   const template = useAppStore((state) => state.template);
   const updateTemplate = useAppStore((state) => state.updateTemplate);
   const dataset = useAppStore((state) => state.dataset);
   const [openGenerate, setOpenGenerate] = React.useState(false);
+
+  const datasetSummary = React.useMemo(() => {
+    if (!dataset) {
+      return null;
+    }
+    const { fields, rows, sourceMeta } = dataset;
+    const name = sourceMeta?.name ?? 'Active dataset';
+    const importedAt = sourceMeta?.importedAt
+      ? new Date(sourceMeta.importedAt).toLocaleString(undefined, {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+        })
+      : null;
+    return { name, fields: fields.length, rows: rows.length, importedAt };
+  }, [dataset]);
 
   const handleExportTemplate = () => {
     void exportTemplate(template);
@@ -37,6 +53,18 @@ export function AppHeader() {
         </div>
       </div>
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+        {datasetSummary && (
+          <div className="flex flex-col gap-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-500 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 sm:flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-semibold text-slate-700 dark:text-slate-100">{datasetSummary.name}</span>
+              <Badge variant="outline">{datasetSummary.rows} records</Badge>
+              <Badge variant="outline">{datasetSummary.fields} fields</Badge>
+            </div>
+            {datasetSummary.importedAt && (
+              <span>Imported {datasetSummary.importedAt}</span>
+            )}
+          </div>
+        )}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
           <RecordPreviewSelect />
           <DatasetImportDialog />

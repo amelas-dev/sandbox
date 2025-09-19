@@ -15,6 +15,8 @@ export function PropertiesPanel() {
   const setZoom = useAppStore((state) => state.setZoom);
   const showGrid = useAppStore((state) => state.showGrid);
   const toggleGrid = useAppStore((state) => state.toggleGrid);
+  const autosaveEnabled = useAppStore((state) => state.preferences.autosave);
+  const updatePreferences = useAppStore((state) => state.updatePreferences);
 
   const handleMarginChange = (side: 'top' | 'right' | 'bottom' | 'left', value: number) => {
     updateTemplate({
@@ -23,6 +25,10 @@ export function PropertiesPanel() {
         margins: { ...template.page.margins, [side]: value },
       },
     });
+  };
+
+  const handleResetZoom = () => {
+    setZoom(1);
   };
 
   return (
@@ -99,16 +105,21 @@ export function PropertiesPanel() {
               </div>
             ))}
           </div>
-          <div className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2 text-sm dark:border-slate-800">
-            <span>Grid guides</span>
-            <Button variant={showGrid ? 'default' : 'outline'} size="sm" onClick={toggleGrid}>
-              {showGrid ? 'On' : 'Off'}
-            </Button>
-          </div>
+            <div className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2 text-sm dark:border-slate-800">
+              <span>Grid guides</span>
+              <Button variant={showGrid ? 'default' : 'outline'} size="sm" onClick={toggleGrid}>
+                {showGrid ? 'On' : 'Off'}
+              </Button>
+            </div>
             <div className="space-y-2 rounded-xl border border-slate-200 px-3 py-2 text-sm dark:border-slate-800">
               <div className="flex items-center justify-between">
                 <span>Zoom</span>
-                <span>{Math.round(zoom * 100)}%</span>
+                <div className="flex items-center gap-2">
+                  <span>{Math.round(zoom * 100)}%</span>
+                  <Button variant="ghost" size="sm" onClick={handleResetZoom}>
+                    Reset
+                  </Button>
+                </div>
               </div>
               <Slider
                 value={[zoom * 100]}
@@ -117,6 +128,16 @@ export function PropertiesPanel() {
                 max={200}
                 step={10}
               />
+            </div>
+            <div className="flex items-center justify-between rounded-xl border border-slate-200 px-3 py-2 text-sm dark:border-slate-800">
+              <span>Autosave</span>
+              <Button
+                variant={autosaveEnabled ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => updatePreferences({ autosave: !autosaveEnabled })}
+              >
+                {autosaveEnabled ? 'On' : 'Off'}
+              </Button>
             </div>
           </TabsContent>
           <TabsContent value="style" className="space-y-4 pr-1">

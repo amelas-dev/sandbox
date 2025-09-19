@@ -175,7 +175,7 @@ export default function App() {
         } else {
           const activeRect = event.active.rect.current;
           const rect = (activeRect.translated ??
-            activeRect.initial) as ClientRect | null;
+            activeRect.initial) as DOMRect | null;
           if (rect) {
             insertMergeTag(fieldKey, {
               x: rect.left + rect.width / 2,
