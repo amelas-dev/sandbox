@@ -87,8 +87,20 @@ export async function expandTemplateToHtml(template, record, dataset) {
         TableCellModule.default,
         ColorModule.default,
         TextStyleModule.default,
-        HighlightModule.default,
-        MergeTagModule.MergeTag.configure({ dataset, record }),
+        HighlightModule.default.configure({ multicolor: true }),
+        MergeTagModule.MergeTag.configure({
+            sampleProvider: (fieldKey) => {
+                const value = record[fieldKey];
+                if (value === undefined || value === null) {
+                    return '';
+                }
+                if (value instanceof Date) {
+                    return value.toISOString();
+                }
+                return String(value);
+            },
+            isFieldValid: (fieldKey) => dataset.fields.some((field) => field.key === fieldKey),
+        }),
     ]);
     return substituteMergeTags(html, record);
 }

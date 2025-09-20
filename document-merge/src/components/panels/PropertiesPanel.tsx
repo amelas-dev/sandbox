@@ -146,15 +146,20 @@ export function PropertiesPanel() {
               <Input
                 id="fontFamily"
                 value={template.styles.fontFamily}
-              onChange={(event) => updateTemplate({ styles: { fontFamily: event.target.value } })}
-            />
+                onChange={(event) =>
+                  updateTemplate({ styles: { ...template.styles, fontFamily: event.target.value } })
+                }
+              />
           </div>
           <div className="space-y-2">
             <Label>Theme</Label>
             <ToggleGroup
               type="single"
               value={template.styles.theme}
-              onValueChange={(value) => value && updateTemplate({ styles: { theme: value as 'light' | 'dark' } })}
+              onValueChange={(value) =>
+                value &&
+                updateTemplate({ styles: { ...template.styles, theme: value as 'light' | 'dark' } })
+              }
             >
               <ToggleGroupItem value="light">Light</ToggleGroupItem>
               <ToggleGroupItem value="dark">Dark</ToggleGroupItem>
@@ -164,7 +169,14 @@ export function PropertiesPanel() {
             <Label>Base font size</Label>
             <Slider
               value={[template.styles.baseFontSize]}
-              onValueChange={(value) => updateTemplate({ styles: { baseFontSize: value[0] ?? template.styles.baseFontSize } })}
+              onValueChange={(value) =>
+                updateTemplate({
+                  styles: {
+                    ...template.styles,
+                    baseFontSize: value[0] ?? template.styles.baseFontSize,
+                  },
+                })
+              }
               min={10}
               max={24}
             />

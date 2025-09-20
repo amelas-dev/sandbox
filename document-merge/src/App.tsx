@@ -3,6 +3,7 @@ import type { Editor } from '@tiptap/core';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { FieldPalette } from '@/components/panels/FieldPalette';
 import { DocumentDesigner } from '@/components/editor/DocumentDesigner';
+import { TextFormattingToolbar } from '@/components/editor/TextFormattingToolbar';
 import { PropertiesPanel } from '@/components/panels/PropertiesPanel';
 import { Badge } from '@/components/ui/badge';
 import { useAppStore, selectFieldPalette } from '@/store/useAppStore';
@@ -152,6 +153,11 @@ export default function App() {
                 </span>
               </span>
             </div>
+            {editor && (
+              <div className='border-b border-slate-200 bg-slate-50/80 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/60 sm:px-6'>
+                <TextFormattingToolbar editor={editor} className='bg-white/95 dark:bg-slate-900/80' />
+              </div>
+            )}
             <div className='flex-1'>
               <DocumentDesigner onEditorReady={handleEditorReady} className='h-full' />
             </div>

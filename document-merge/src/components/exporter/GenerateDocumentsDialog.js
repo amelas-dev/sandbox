@@ -16,6 +16,8 @@ export function GenerateDocumentsDialog({ open, onOpenChange }) {
     const updateGenerationOptions = useAppStore((state) => state.updateGenerationOptions);
     const [isGenerating, setIsGenerating] = React.useState(false);
     const [status, setStatus] = React.useState('');
+    const filterValue = generationOptions.filter?.value;
+    const filterValueInput = filterValue == null ? '' : String(filterValue);
     const handleGenerate = async () => {
         if (!dataset) {
             setStatus('Import a dataset before generating documents.');
@@ -52,7 +54,7 @@ export function GenerateDocumentsDialog({ open, onOpenChange }) {
                                                                     ...(generationOptions.filter ?? { field: dataset.fields[0]?.key ?? '', value: '' }),
                                                                     op: event.target.value,
                                                                 },
-                                                            }), children: [_jsx("option", { value: "eq", children: "Equals" }), _jsx("option", { value: "neq", children: "Does not equal" }), _jsx("option", { value: "gt", children: "Greater than" }), _jsx("option", { value: "lt", children: "Less than" }), _jsx("option", { value: "contains", children: "Contains" })] })] })] }), _jsxs("div", { children: [_jsx(Label, { children: "Value" }), _jsx(Input, { value: generationOptions.filter?.value ?? '', onChange: (event) => updateGenerationOptions({
+                                                            }), children: [_jsx("option", { value: "eq", children: "Equals" }), _jsx("option", { value: "neq", children: "Does not equal" }), _jsx("option", { value: "gt", children: "Greater than" }), _jsx("option", { value: "lt", children: "Less than" }), _jsx("option", { value: "contains", children: "Contains" })] })] })] }), _jsxs("div", { children: [_jsx(Label, { children: "Value" }), _jsx(Input, { value: filterValueInput, onChange: (event) => updateGenerationOptions({
                                                         filter: {
                                                             ...(generationOptions.filter ?? { field: dataset.fields[0]?.key ?? '', op: 'eq' }),
                                                             value: event.target.value,

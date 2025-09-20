@@ -1,6 +1,5 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import * as React from 'react';
-import { useDroppable } from '@dnd-kit/core';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -29,25 +28,24 @@ const PAGE_DIMENSIONS = {
 function ptsToPx(value) {
     return (value / 72) * 96;
 }
-export function DocumentDesigner({ className, onEditorReady, droppableId = 'designer-canvas' }) {
+export function DocumentDesigner({ className, onEditorReady }) {
     const dataset = useAppStore(selectDataset);
     const template = useAppStore(selectTemplate);
     const previewIndex = useAppStore((state) => state.previewIndex);
     const setTemplateContent = useAppStore((state) => state.setTemplateContent);
     const zoom = useAppStore((state) => state.zoom);
     const showGrid = useAppStore((state) => state.showGrid);
-    const { setNodeRef } = useDroppable({ id: droppableId });
     const mergeTagExtension = React.useMemo(() => MergeTag.configure({
         sampleProvider: (fieldKey) => getSampleValue(dataset, fieldKey, previewIndex),
         isFieldValid: (fieldKey) => dataset ? dataset.fields.some((field) => field.key === fieldKey) : true,
     }), [dataset, previewIndex]);
     const editor = useEditor({
         extensions: [
-            StarterKit.configure({ history: true }),
+            StarterKit.configure(),
             Placeholder.configure({ placeholder: 'Compose your investor-ready narrative…' }),
-            Link.configure({ openOnClick: false, autolink: true }),
+            Link.configure({ openOnClick: false, autolink: true, linkOnPaste: true }),
             Underline,
-            Highlight,
+            Highlight.configure({ multicolor: true }),
             Image.configure({ allowBase64: true }),
             Table.configure({ resizable: true }),
             TableRow,
@@ -72,7 +70,7 @@ export function DocumentDesigner({ className, onEditorReady, droppableId = 'desi
                         event.preventDefault();
                         const firstField = dataset?.fields[0];
                         if (firstField) {
-                            editor?.chain().focus().command(({ tr }) => {
+                            editor?.chain().focus().command(({ tr: _tr }) => {
                                 editor.commands.insertContent({ type: 'mergeTag', attrs: { fieldKey: firstField.key, label: firstField.label } });
                                 return true;
                             });
@@ -116,7 +114,7 @@ export function DocumentDesigner({ className, onEditorReady, droppableId = 'desi
         lineHeight: 1.6,
         color: template.styles.theme === 'dark' ? 'rgb(226 232 240)' : 'inherit',
     }), [template.styles.fontFamily, template.styles.baseFontSize, template.styles.theme]);
-    return (_jsx("div", { ref: setNodeRef, className: cn('relative flex h-full w-full items-center justify-center overflow-auto bg-slate-100/70 p-4 sm:p-6', className), children: _jsxs("div", { className: cn('relative max-w-full rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-950'), style: {
+    return (_jsx("div", { className: cn('relative flex h-full w-full items-center justify-center overflow-auto bg-slate-100/70 p-4 sm:p-6', className), children: _jsxs("div", { className: cn('relative max-w-full rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-950'), style: {
                 width: `${pageWidth}px`,
                 height: `${pageHeight}px`,
                 transform: `scale(${zoom})`,

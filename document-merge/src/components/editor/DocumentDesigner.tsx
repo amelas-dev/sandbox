@@ -56,11 +56,11 @@ export function DocumentDesigner({ className, onEditorReady }: DocumentDesignerP
   const editor = useEditor(
     {
       extensions: [
-        StarterKit.configure({ history: true }),
+        StarterKit.configure(),
         Placeholder.configure({ placeholder: 'Compose your investor-ready narrative…' }),
-        Link.configure({ openOnClick: false, autolink: true }),
+        Link.configure({ openOnClick: false, autolink: true, linkOnPaste: true }),
         Underline,
-        Highlight,
+        Highlight.configure({ multicolor: true }),
         Image.configure({ allowBase64: true }),
         Table.configure({ resizable: true }),
         TableRow,
