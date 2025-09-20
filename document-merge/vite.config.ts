@@ -12,4 +12,17 @@ export default defineConfig({
   server: {
     port: 5173,
   },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['./tests/setup.ts'],
+    restoreMocks: true,
+    typecheck: {
+      tsconfig: './tsconfig.test.json',
+    },
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html'],
+    },
+  },
 });

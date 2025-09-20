@@ -9,6 +9,10 @@ import { exportTemplate, importTemplate } from '@/lib/template-sharing';
 import { GenerateDocumentsDialog } from '@/components/exporter/GenerateDocumentsDialog';
 import { Badge } from '@/components/ui/badge';
 
+/**
+ * Top-level navigation for dataset management, preview selection, and document
+ * generation actions.
+ */
 export function AppHeader() {
   const template = useAppStore((state) => state.template);
   const updateTemplate = useAppStore((state) => state.updateTemplate);

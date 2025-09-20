@@ -22,6 +22,9 @@ import { getSampleValue } from '@/lib/dataset';
 import type { Editor } from '@tiptap/core';
 import { cn } from '@/lib/utils';
 
+/**
+ * Canonical page dimensions (in pixels) for supported paper sizes.
+ */
 const PAGE_DIMENSIONS: Record<'Letter' | 'A4', { width: number; height: number }> = {
   Letter: { width: 816, height: 1056 },
   A4: { width: 794, height: 1123 },
@@ -36,6 +39,10 @@ export interface DocumentDesignerProps {
   onEditorReady?: (editor: Editor) => void;
 }
 
+/**
+ * Configure and render the Tiptap-powered document designer with merge tag
+ * support and zoom/grid controls sourced from application state.
+ */
 export function DocumentDesigner({ className, onEditorReady }: DocumentDesignerProps) {
   const dataset = useAppStore(selectDataset);
   const template = useAppStore(selectTemplate);
@@ -86,7 +93,7 @@ export function DocumentDesigner({ className, onEditorReady }: DocumentDesignerP
               event.preventDefault();
               const firstField = dataset?.fields[0];
               if (firstField) {
-                editor?.chain().focus().command(({ tr: _tr }) => {
+                editor?.chain().focus().command(() => {
                   editor.commands.insertContent({ type: 'mergeTag', attrs: { fieldKey: firstField.key, label: firstField.label } });
                   return true;
                 });

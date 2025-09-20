@@ -8,6 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAppStore } from '@/store/useAppStore';
 
+/**
+ * Controls for page layout, visual styling, and persistence preferences. This
+ * panel keeps the editing experience aligned with brand guidelines while
+ * exposing power-user toggles such as autosave and grid guides.
+ */
 export function PropertiesPanel() {
   const template = useAppStore((state) => state.template);
   const updateTemplate = useAppStore((state) => state.updateTemplate);

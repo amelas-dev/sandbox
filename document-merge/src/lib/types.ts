@@ -20,7 +20,7 @@ export type PageSize = 'Letter' | 'A4';
 export type Orientation = 'portrait' | 'landscape';
 
 export interface TemplateDoc {
-  content: any;
+  content: unknown;
   page: {
     size: PageSize;
     orientation: Orientation;

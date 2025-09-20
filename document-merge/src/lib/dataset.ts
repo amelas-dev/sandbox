@@ -1,7 +1,35 @@
 import type { Dataset, DatasetField, DatasetImportResult, FieldType } from './types';
+import { createNullPrototypeRecord } from '@/lib/guards';
 
 const ISO_DATE_REGEX = /^(\d{4})-(\d{2})-(\d{2})$/;
 const CURRENCY_REGEX = /^\$?\s?-?[0-9]+(?:,[0-9]{3})*(?:\.[0-9]{2})?$/;
+
+const DEFAULT_PARSING_LIMITS = {
+  maxRows: 5000,
+  maxColumns: 200,
+  maxHeaderLength: 120,
+  maxCellLength: 10000,
+} as const;
+
+export interface DatasetParsingOptions {
+  maxRows?: number;
+  maxColumns?: number;
+  maxHeaderLength?: number;
+  maxCellLength?: number;
+}
+
+function resolveParsingLimits(options?: DatasetParsingOptions) {
+  return {
+    ...DEFAULT_PARSING_LIMITS,
+    ...(options ?? {}),
+  } satisfies Required<DatasetParsingOptions>;
+}
+
+function ensureWithinLimit(name: string, value: number, limit: number | undefined) {
+  if (typeof limit === 'number' && value > limit) {
+    throw new Error(`The imported dataset exceeds the supported ${name} limit (${limit}).`);
+  }
+}
 
 /**
  * Normalize a header into a unique key safe for use as a merge field.
@@ -75,11 +103,19 @@ export interface NormalizeHeadersResult {
   headerReport: Array<{ original: string; normalized: string }>;
 }
 
-export function normalizeHeaders(headers: string[]): NormalizeHeadersResult {
+function sanitizeHeaderLabel(label: string, limits: Required<DatasetParsingOptions>) {
+  ensureWithinLimit('header length', label.length, limits.maxHeaderLength);
+  return label;
+}
+
+export function normalizeHeaders(headers: string[], options?: DatasetParsingOptions): NormalizeHeadersResult {
+  const limits = resolveParsingLimits(options);
+  ensureWithinLimit('column count', headers.length, limits.maxColumns);
   const taken = new Set<string>();
   const fields: DatasetField[] = [];
   const report: Array<{ original: string; normalized: string }> = [];
   headers.forEach((label) => {
+    sanitizeHeaderLabel(label, limits);
     const key = normalizeHeader(label, taken);
     fields.push({ key, label: label.trim() || key, type: 'string' });
     report.push({ original: label, normalized: key });
@@ -89,6 +125,41 @@ export function normalizeHeaders(headers: string[]): NormalizeHeadersResult {
 
 export interface RawRecord {
   [key: string]: unknown;
+}
+
+function sanitizeCellValue(
+  value: unknown,
+  limits: Required<DatasetParsingOptions>,
+  issues: DatasetImportResult['issues'],
+  row: number,
+  fieldLabel: string,
+): unknown {
+  if (value === undefined || value === null) {
+    return '';
+  }
+  if (typeof value === 'string') {
+    const normalized = value.replaceAll(String.fromCharCode(0), '').trimEnd();
+    if (normalized.length > limits.maxCellLength) {
+      issues.push({
+        row,
+        field: fieldLabel,
+        message: `Value exceeded ${limits.maxCellLength} characters and was truncated.`,
+      });
+      return normalized.slice(0, limits.maxCellLength);
+    }
+    return normalized;
+  }
+  if (typeof value === 'number' || typeof value === 'boolean' || value instanceof Date) {
+    return value;
+  }
+  if (Array.isArray(value) || (typeof value === 'object' && value)) {
+    try {
+      return typeof structuredClone === 'function' ? structuredClone(value) : JSON.parse(JSON.stringify(value));
+    } catch {
+      return value;
+    }
+  }
+  return String(value);
 }
 
 /**
@@ -143,7 +214,7 @@ function parseCsvLine(line: string): string[] {
     }
   }
   result.push(current);
-  return result.map((value) => value.replace(/\r?\n/g, '\n').trim());
+  return result.map((value) => value.replace(/\r?\n/g, '\n'));
 }
 
 function parseCsvText(text: string): string[][] {
@@ -173,18 +244,26 @@ function parseCsvText(text: string): string[][] {
   return rows.filter((row) => row.some((cell) => cell.length > 0));
 }
 
-export function parseCsvString(content: string, meta?: Dataset['sourceMeta']): DatasetImportResult {
+export function parseCsvString(
+  content: string,
+  meta?: Dataset['sourceMeta'],
+  options?: DatasetParsingOptions,
+): DatasetImportResult {
+  const limits = resolveParsingLimits(options);
   const rows = parseCsvText(content);
   if (!rows.length) {
     throw new Error('No rows found in CSV.');
   }
   const [headerRow, ...dataRows] = rows;
-  const headerInfo = normalizeHeaders(headerRow);
+  ensureWithinLimit('column count', headerRow.length, limits.maxColumns);
+  ensureWithinLimit('row count', dataRows.length, limits.maxRows);
+  const headerInfo = normalizeHeaders(headerRow, limits);
   const issues = [] as DatasetImportResult['issues'];
   const records: RawRecord[] = dataRows.map((cells, rowIndex) => {
-    const record: RawRecord = {};
+    const record = createNullPrototypeRecord<RawRecord>();
     headerInfo.fields.forEach((field, fieldIndex) => {
-      record[field.key] = cells[fieldIndex] ?? '';
+      const raw = cells[fieldIndex];
+      record[field.key] = sanitizeCellValue(raw ?? '', limits, issues, rowIndex + 2, field.label);
     });
     if (cells.length > headerInfo.fields.length) {
       issues.push({
@@ -199,46 +278,92 @@ export function parseCsvString(content: string, meta?: Dataset['sourceMeta']): D
   return { dataset, issues, headerReport: headerInfo.headerReport };
 }
 
-export async function parseCsvFile(file: File): Promise<DatasetImportResult> {
+export async function parseCsvFile(file: File, options?: DatasetParsingOptions): Promise<DatasetImportResult> {
   const text = await file.text();
-  return parseCsvString(text, {
-    name: file.name,
-    size: file.size,
-    importedAt: new Date().toISOString(),
-  });
+  return parseCsvString(
+    text,
+    {
+      name: file.name,
+      size: file.size,
+      importedAt: new Date().toISOString(),
+    },
+    options,
+  );
 }
 
-export async function parseJsonText(content: string, meta?: Dataset['sourceMeta']): Promise<DatasetImportResult> {
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function collectHeadersFromRecords(records: Array<Record<string, unknown>>): string[] {
+  const seen = new Set<string>();
+  const ordered: string[] = [];
+  records.forEach((record) => {
+    Object.keys(record).forEach((key) => {
+      if (!seen.has(key)) {
+        seen.add(key);
+        ordered.push(key);
+      }
+    });
+  });
+  return ordered;
+}
+
+export async function parseJsonText(
+  content: string,
+  meta?: Dataset['sourceMeta'],
+  options?: DatasetParsingOptions,
+): Promise<DatasetImportResult> {
+  const limits = resolveParsingLimits(options);
   const value = JSON.parse(content);
   if (!Array.isArray(value)) {
     throw new Error('JSON must be an array of records.');
   }
+  ensureWithinLimit('row count', value.length, limits.maxRows);
   if (!value.length) {
     throw new Error('JSON array is empty.');
   }
-  const headers = Object.keys(value[0]);
-  const headerInfo = normalizeHeaders(headers);
-  const records: RawRecord[] = value.map((entry) => {
-    const record: RawRecord = {};
+  const recordsAsObjects = value.map((entry, index) => {
+    if (!isPlainObject(entry)) {
+      throw new Error(`JSON entry at index ${index} is not an object.`);
+    }
+    return entry;
+  });
+  const headers = collectHeadersFromRecords(recordsAsObjects);
+  const headerInfo = normalizeHeaders(headers, limits);
+  const issues: DatasetImportResult['issues'] = [];
+  const records: RawRecord[] = recordsAsObjects.map((entry, rowIndex) => {
+    const record = createNullPrototypeRecord<RawRecord>();
     headerInfo.fields.forEach((field) => {
-      record[field.key] = entry[field.label] ?? entry[field.key] ?? '';
+      const raw = entry[field.label] ?? entry[field.key];
+      record[field.key] = sanitizeCellValue(raw, limits, issues, rowIndex + 1, field.label);
     });
     return record;
   });
   const dataset = buildDataset(records, headerInfo, meta);
-  return { dataset, issues: [], headerReport: headerInfo.headerReport };
+  return { dataset, issues, headerReport: headerInfo.headerReport };
 }
 
-export async function parseJsonFile(file: File): Promise<DatasetImportResult> {
+export async function parseJsonFile(
+  file: File,
+  options?: DatasetParsingOptions,
+): Promise<DatasetImportResult> {
   const text = await file.text();
-  return parseJsonText(text, {
-    name: file.name,
-    size: file.size,
-    importedAt: new Date().toISOString(),
-  });
+  return parseJsonText(
+    text,
+    {
+      name: file.name,
+      size: file.size,
+      importedAt: new Date().toISOString(),
+    },
+    options,
+  );
 }
 
-export async function parseXlsxFile(file: File): Promise<DatasetImportResult> {
+export async function parseXlsxFile(
+  file: File,
+  options?: DatasetParsingOptions,
+): Promise<DatasetImportResult> {
   const buffer = await file.arrayBuffer();
   const XLSX = await import('xlsx');
   const workbook = XLSX.read(buffer, { type: 'array' });
@@ -249,7 +374,7 @@ export async function parseXlsxFile(file: File): Promise<DatasetImportResult> {
     defval: '',
   });
   const meta = { name: file.name, size: file.size, importedAt: new Date().toISOString() };
-  return parseJsonText(JSON.stringify(json), meta);
+  return parseJsonText(JSON.stringify(json), meta, options);
 }
 
 export function datasetPreview(dataset: Dataset, limit = 100): Array<Record<string, unknown>> {
@@ -264,5 +389,6 @@ export function getSampleValue(dataset: Dataset | undefined, fieldKey: string, i
   if (value === undefined || value === null) return '';
   if (typeof value === 'number') return value.toLocaleString();
   if (value instanceof Date) return value.toISOString();
+  if (typeof value === 'object') return JSON.stringify(value);
   return String(value);
 }

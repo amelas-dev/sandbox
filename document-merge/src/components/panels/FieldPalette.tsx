@@ -102,6 +102,10 @@ function FieldChip({
   );
 }
 
+/**
+ * List of merge fields derived from the dataset with search and inline sample
+ * previews to help authors understand available data.
+ */
 export function FieldPalette({ onInsertField }: FieldPaletteProps) {
   const fields = useAppStore(selectFieldPalette);
   const filter = useAppStore((state) => state.mergeTagFilter);

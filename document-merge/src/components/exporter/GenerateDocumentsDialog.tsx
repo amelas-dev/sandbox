@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { useAppStore, selectDataset, selectGenerationOptions, selectTemplate } from '@/store/useAppStore';
 import { buildGenerationArtifacts } from '@/lib/merge';
 import { exportArtifacts } from '@/lib/exporters';
+import type { GenerationFilter } from '@/lib/types';
 
 interface GenerateDocumentsDialogProps {
   open: boolean;
@@ -122,7 +123,7 @@ export function GenerateDocumentsDialog({ open, onOpenChange }: GenerateDocument
                         updateGenerationOptions({
                           filter: {
                             ...(generationOptions.filter ?? { field: dataset.fields[0]?.key ?? '', value: '' }),
-                            op: event.target.value as any,
+                            op: event.target.value as GenerationFilter['op'],
                           },
                         })
                       }
@@ -143,7 +144,7 @@ export function GenerateDocumentsDialog({ open, onOpenChange }: GenerateDocument
                       updateGenerationOptions({
                         filter: {
                           ...(generationOptions.filter ?? { field: dataset.fields[0]?.key ?? '', op: 'eq' }),
-                          value: event.target.value as string,
+                          value: event.target.value,
                         },
                       })
                     }

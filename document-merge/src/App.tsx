@@ -7,6 +7,10 @@ import { PropertiesPanel } from '@/components/panels/PropertiesPanel';
 import { Badge } from '@/components/ui/badge';
 import { useAppStore, selectFieldPalette } from '@/store/useAppStore';
 
+/**
+ * Rotating guidance surfaced in the footer to help first-time users discover
+ * the editor's capabilities.
+ */
 const FOOTER_TIPS = [
   'Click a field to drop a merge tag at your cursor.',
   'Use Cmd/Ctrl+E to open the quick merge tag inserter.',
@@ -14,6 +18,10 @@ const FOOTER_TIPS = [
   'Use the properties panel to adjust page size, margins, and zoom.',
 ];
 
+/**
+ * High-level layout that wires together dataset import, the Tiptap designer,
+ * and the document generation workflow.
+ */
 export default function App() {
   const dataset = useAppStore((state) => state.dataset);
   const template = useAppStore((state) => state.template);

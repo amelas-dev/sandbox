@@ -1,4 +1,5 @@
 import type { Dataset, GenerationOptions, TemplateDoc } from './types';
+import { escapeHtml } from '@/lib/utils';
 
 const MERGE_TAG_REGEX = /{{\s*([\w.]+)\s*}}/g;
 
@@ -11,24 +12,59 @@ function getNestedValue(record: Record<string, unknown>, path: string): unknown 
   }, record);
 }
 
-export function substituteMergeTags(text: string, record: Record<string, unknown>): string {
-  return text.replace(MERGE_TAG_REGEX, (_match, key) => {
-    const value = getNestedValue(record, key.trim());
-    if (value === undefined || value === null) {
+function formatMergeValue(value: unknown): string {
+  if (value === undefined || value === null) {
+    return '';
+  }
+  if (value instanceof Date) {
+    return value.toISOString().split('T')[0];
+  }
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value.toString();
+  }
+  if (typeof value === 'boolean') {
+    return value ? 'true' : 'false';
+  }
+  if (typeof value === 'object') {
+    try {
+      return JSON.stringify(value);
+    } catch {
       return '';
     }
-    if (value instanceof Date) {
-      return value.toISOString().split('T')[0];
-    }
-    if (typeof value === 'number') {
-      return value.toString();
-    }
-    return String(value);
+  }
+  return String(value);
+}
+
+/**
+ * Options to control merge tag substitution behaviour.
+ */
+export interface SubstituteMergeTagOptions {
+  htmlEscape?: boolean;
+}
+
+const DEFAULT_SUBSTITUTE_OPTIONS: Required<SubstituteMergeTagOptions> = {
+  htmlEscape: true,
+};
+
+/**
+ * Replace {{ field }} tokens with values from the provided record. Values are
+ * HTML escaped by default to prevent template injection when rendering in the
+ * browser.
+ */
+export function substituteMergeTags(
+  text: string,
+  record: Record<string, unknown>,
+  options?: SubstituteMergeTagOptions,
+): string {
+  const resolved = { ...DEFAULT_SUBSTITUTE_OPTIONS, ...(options ?? {}) } satisfies Required<SubstituteMergeTagOptions>;
+  return text.replace(MERGE_TAG_REGEX, (_match, key) => {
+    const value = formatMergeValue(getNestedValue(record, key.trim()));
+    return resolved.htmlEscape ? escapeHtml(value) : value;
   });
 }
 
 export function renderFilename(pattern: string, record: Record<string, unknown>, fallback = 'document'): string {
-  const base = substituteMergeTags(pattern, record).trim() || fallback;
+  const base = substituteMergeTags(pattern, record, { htmlEscape: false }).trim() || fallback;
   return base
     .replace(/[/\\?%*:|"<>]/g, '_')
     .replace(/_{2,}/g, '_')

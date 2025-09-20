@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it } from 'vitest';
 import { renderFilename, substituteMergeTags } from '../src/lib/merge';
 
 describe('substituteMergeTags', () => {
@@ -16,6 +16,12 @@ describe('substituteMergeTags', () => {
 
   it('removes missing keys without throwing', () => {
     expect(substituteMergeTags('Hello {{ Missing }}', {})).toBe('Hello ');
+  });
+
+  it('escapes HTML entities by default', () => {
+    const record = { note: '<script>alert(1)</script>' };
+    const template = 'Safe: {{ note }}';
+    expect(substituteMergeTags(template, record)).toBe('Safe: &lt;script&gt;alert(1)&lt;/script&gt;');
   });
 });
 
