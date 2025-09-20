@@ -117,7 +117,8 @@ export function normalizeHeaders(headers: string[], options?: DatasetParsingOpti
   headers.forEach((label) => {
     sanitizeHeaderLabel(label, limits);
     const key = normalizeHeader(label, taken);
-    fields.push({ key, label: label.trim() || key, type: 'string' });
+    const trimmedLabel = label.trim();
+    fields.push({ key, label: trimmedLabel || key, type: 'string', sourceLabel: label });
     report.push({ original: label, normalized: key });
   });
   return { fields, headerReport: report };
@@ -335,7 +336,15 @@ export async function parseJsonText(
   const records: RawRecord[] = recordsAsObjects.map((entry, rowIndex) => {
     const record = createNullPrototypeRecord<RawRecord>();
     headerInfo.fields.forEach((field) => {
-      const raw = entry[field.label] ?? entry[field.key];
+      const candidateKeys = [field.sourceLabel, field.label, field.key];
+      let raw: unknown;
+      for (const candidate of candidateKeys) {
+        if (!candidate) continue;
+        if (Object.prototype.hasOwnProperty.call(entry, candidate)) {
+          raw = entry[candidate];
+          break;
+        }
+      }
       record[field.key] = sanitizeCellValue(raw, limits, issues, rowIndex + 1, field.label);
     });
     return record;
