@@ -1,6 +1,7 @@
 from pathlib import Path
 
-path = Path('src/App.tsx')
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+path = PROJECT_ROOT / 'src' / 'App.tsx'
 lines = path.read_text().splitlines()
 
 start = next(i for i, line in enumerate(lines) if line.strip().startswith('const handleDragStart'))
