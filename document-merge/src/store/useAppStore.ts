@@ -8,6 +8,10 @@ import type {
   TemplateDoc,
 } from '@/lib/types';
 
+/**
+ * Baseline template used when the application first loads or when a template
+ * import fails validation.
+ */
 const DEFAULT_TEMPLATE: TemplateDoc = {
   content: {
     type: 'doc',
@@ -82,18 +86,26 @@ const DEFAULT_TEMPLATE: TemplateDoc = {
   },
 };
 
+/**
+ * Default document generation options presented to the user.
+ */
 const DEFAULT_OPTIONS: GenerationOptions = {
   format: 'pdf',
   range: 'all',
   filenamePattern: 'Welcome_{{InvestorName}}',
 };
 
-const memoryStorage = {
-  getItem: (_key: string) => null,
-  setItem: (_key: string, _value: string) => undefined,
-  removeItem: (_key: string) => undefined,
+const memoryStorage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> = {
+  getItem: () => null,
+  setItem: () => undefined,
+  removeItem: () => undefined,
 };
 
+/**
+ * Root state definition for the Investor Document Studio. All UI panels derive
+ * their data and actions from this store to keep behaviour predictable across
+ * the application.
+ */
 interface AppState {
   dataset?: Dataset;
   importIssues: DatasetImportResult['issues'];
@@ -109,7 +121,7 @@ interface AppState {
   setDataset: (result: DatasetImportResult) => void;
   clearDataset: () => void;
   updateTemplate: (update: Partial<TemplateDoc>) => void;
-  setTemplateContent: (content: any) => void;
+  setTemplateContent: (content: TemplateDoc['content']) => void;
   setPreviewIndex: (index: number) => void;
   setMergeTagFilter: (value: string) => void;
   setSelection: (indexes: number[]) => void;
@@ -121,9 +133,14 @@ interface AppState {
 
 const isBrowser = typeof window !== 'undefined';
 
+/**
+ * Primary Zustand store with persistence to localStorage. When running in a
+ * non-browser environment the store transparently falls back to an in-memory
+ * shim so server-side rendering and tests can execute safely.
+ */
 export const useAppStore = create<AppState>()(
   persist(
-    (set, _get) => ({
+    (set) => ({
       dataset: undefined,
       importIssues: [],
       headerReport: [],
@@ -213,23 +230,33 @@ export const useAppStore = create<AppState>()(
   ),
 );
 
+/**
+ * Return the available dataset fields for the merge tag palette.
+ */
 export function selectFieldPalette(state: AppState) {
   return state.dataset?.fields ?? [];
 }
 
+/**
+ * Return the active preview row, falling back to the first dataset row if the
+ * requested index is out of range.
+ */
 export function selectPreviewRow(state: AppState) {
   if (!state.dataset) return undefined;
   return state.dataset.rows[state.previewIndex] ?? state.dataset.rows[0];
 }
 
+/** Expose the editable template document. */
 export function selectTemplate(state: AppState) {
   return state.template;
 }
 
+/** Retrieve the active dataset, if any. */
 export function selectDataset(state: AppState) {
   return state.dataset;
 }
 
+/** Return the persisted generation options. */
 export function selectGenerationOptions(state: AppState) {
   return state.generationOptions;
 }

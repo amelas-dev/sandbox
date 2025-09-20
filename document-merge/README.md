@@ -11,7 +11,7 @@ Investor Document Studio is a single-page React + TypeScript application for cra
 - 👀 **Record preview** selector that updates all sample values inline.
 - 🧾 **Generation workflow** for PDF/DOCX/HTML exports with automatic ZIP packaging when multiple records are generated.
 - 💾 **Local persistence** with autosave (configurable via preferences) backed by `localStorage`.
-- 🧪 **Unit tests** for dataset parsing, merge substitution, and filename templating (run with `bun test`).
+- 🧪 **Unit tests** for dataset parsing, merge substitution, and filename templating (run with `npm run test`).
 
 ## Getting Started
 
@@ -34,7 +34,7 @@ Investor Document Studio is a single-page React + TypeScript application for cra
 3. **Run tests**
 
    ```bash
-   bun test
+   npm run test
    ```
 
 ## Project Structure
@@ -44,7 +44,8 @@ Investor Document Studio is a single-page React + TypeScript application for cra
 - `src/editor/` – Custom Tiptap merge tag node and React view.
 - `src/lib/` – Dataset parsing, merge helpers, export utilities, and shared types.
 - `src/store/` – Zustand store with persistence and template defaults.
-- `tests/` – Bun unit tests covering parsing and merge helpers.
+- `tests/` – Vitest suites covering parsing logic, merge helpers, and regression cases.
+- `docs/` – Compliance artifacts including the full `AUDIT.md` prepared for this release.
 
 ## Notes
 
@@ -59,7 +60,7 @@ Enjoy designing investor-ready documents in minutes! ✨
 These steps make it easy to get a reproducible environment on macOS (zsh).
 
 - Recommended Node version: 18.x (the repo's tooling works with Node 18+). A `.nvmrc` file is provided.
-- The project supports both npm and Bun. Tests in this repo use `bun test` by default; the helper script below will use Bun when available and fall back to npm otherwise.
+- The project supports both npm and Bun for dependency installation. Tests run through Vitest using the npm scripts defined in `package.json`.
 
 1. Install Node (recommended via nvm) and switch to the project's Node version:
 
@@ -69,14 +70,7 @@ nvm install 18
 nvm use 18
 ```
 
-2. Optional: install Bun (for faster installs and to run tests as authored):
-
-```bash
-curl -fsSL https://bun.sh/install | bash
-# restart your shell or run: source ~/.bun/bin/bun.sh
-```
-
-3. Use the included setup script to install dependencies (it prefers Bun if available):
+2. Use the included setup script to install dependencies (it prefers Bun for installation speed if available, but tests run via npm/vitest):
 
 ```bash
 chmod +x scripts/setup.sh
@@ -93,28 +87,22 @@ npm install
 bun install
 ```
 
-4. Start the dev server:
+3. Start the dev server:
 
 ```bash
 npm run dev
-# or, if using bun to run scripts
-bun run dev
 ```
 
 The app will be available at http://localhost:5173
 
-5. Run tests
+4. Run tests
 
 ```bash
-# Tests are written for Bun. If you have Bun installed:
-bun test
-
-# If you do not have Bun, you can still run subset tests by installing a Node-based test runner
-# (e.g. vitest) and adding a test script — see Notes below.
+npm run test
 ```
 
 Notes
 
-- The repo's `package.json` currently uses `bun test`. If you prefer Node-native tests, I can add a lightweight `vitest` setup and a `npm test` script — tell me if you'd like that.
+- Tests execute in a jsdom environment through Vitest. Coverage reports are emitted to `coverage/` when running locally.
 - If you see TypeScript errors from `tsc`, make sure devDependencies were installed and you're using Node 18+.
 
