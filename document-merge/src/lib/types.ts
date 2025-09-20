@@ -4,6 +4,11 @@ export interface DatasetField {
   key: string;
   label: string;
   type: FieldType;
+  /**
+   * Original header text as it appeared in the imported file. This lets us
+   * reconcile values even if display labels are trimmed or normalized.
+   */
+  sourceLabel?: string;
 }
 
 export interface Dataset {

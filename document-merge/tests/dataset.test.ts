@@ -31,4 +31,13 @@ describe('parseJsonText', () => {
   it('rejects non-object entries', async () => {
     await expect(parseJsonText('["ok", 42]')).rejects.toThrow(/not an object/);
   });
+
+  it('retains values when headers contain surrounding whitespace', async () => {
+    const json = '[{"Name ": "Ada", " Amount ": "1000"}]';
+    const result = await parseJsonText(json);
+
+    expect(result.dataset.fields.map((field) => field.label)).toEqual(['Name', 'Amount']);
+    expect(result.dataset.rows[0]?.name).toBe('Ada');
+    expect(result.dataset.rows[0]?.amount).toBe('1000');
+  });
 });

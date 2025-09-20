@@ -92,11 +92,12 @@ export function DatasetImportDialog() {
     setStatus('loading');
     try {
       let result: DatasetImportResult;
-      if (file.name.endsWith('.csv')) {
+      const extension = file.name.split('.').pop()?.toLowerCase();
+      if (extension === 'csv') {
         result = await parseCsvFile(file);
-      } else if (file.name.endsWith('.json')) {
+      } else if (extension === 'json') {
         result = await parseJsonFile(file);
-      } else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) {
+      } else if (extension === 'xlsx' || extension === 'xls') {
         result = await parseXlsxFile(file);
       } else {
         throw new Error('Unsupported file type. Please upload CSV, JSON, or XLSX.');
