@@ -2,6 +2,8 @@ import * as React from 'react';
 import { generateHTML } from '@tiptap/react';
 import type { JSONContent } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
+import { ListStyleBullet, ListStyleOrdered } from '@/editor/extensions/list-style';
+import { ensureGoogleFontsLoaded } from '@/lib/google-font-loader';
 import Link from '@tiptap/extension-link';
 import Underline from '@tiptap/extension-underline';
 import Highlight from '@tiptap/extension-highlight';
@@ -24,6 +26,14 @@ interface DocumentPreviewProps {
   className?: string;
 }
 
+function extractPrimaryFamily(fontStack: string): string {
+  if (!fontStack) {
+    return '';
+  }
+  const first = fontStack.split(',')[0]?.trim() ?? '';
+  return first.replace(/^['"]/, '').replace(/['"]$/, '');
+}
+
 export function DocumentPreview({ className }: DocumentPreviewProps) {
   const template = useAppStore(selectTemplate);
   const dataset = useAppStore(selectDataset);
@@ -34,6 +44,16 @@ export function DocumentPreview({ className }: DocumentPreviewProps) {
   const pageDimensions = React.useMemo(() => getPageDimensions(template.page), [template.page]);
   const padding = React.useMemo(() => getPagePadding(template.page.margins), [template.page.margins]);
   const baseStyles = React.useMemo(() => getDocumentBaseStyles(template), [template]);
+  React.useEffect(() => {
+    const families = [
+      extractPrimaryFamily(template.styles.fontFamily),
+      extractPrimaryFamily(template.styles.headingFontFamily),
+    ].filter((family) => family.length > 0);
+    if (families.length) {
+      ensureGoogleFontsLoaded(families);
+    }
+  }, [template.styles.fontFamily, template.styles.headingFontFamily]);
+
   const recordSummary = React.useMemo(() => {
     if (!dataset || !dataset.rows.length) {
       return 'No dataset loaded';
@@ -80,7 +100,7 @@ export function DocumentPreview({ className }: DocumentPreviewProps) {
     });
 
     const extensions = [
-      StarterKit.configure({ history: false }),
+      StarterKit.configure({ history: false, bulletList: false, orderedList: false }),
       Link.configure({ openOnClick: true, autolink: true }),
       Underline,
       Highlight,
@@ -89,6 +109,8 @@ export function DocumentPreview({ className }: DocumentPreviewProps) {
       TableRow,
       TableCell,
       TableHeader,
+      ListStyleBullet,
+      ListStyleOrdered,
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       Color,
       TextStyle,

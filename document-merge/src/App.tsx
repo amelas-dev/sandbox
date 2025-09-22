@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useAppStore, selectFieldPalette } from '@/store/useAppStore';
 import type { CanvasMode } from '@/lib/types';
+import { ensureGoogleFontsLoaded } from '@/lib/google-font-loader';
 
 /**
  * Rotating guidance surfaced in the footer to help first-time users discover
@@ -129,11 +130,13 @@ export default function App() {
   }, [template.styles.theme]);
 
   React.useEffect(() => {
-    document.body.style.fontFamily = template.styles.fontFamily;
+    const defaultFont = "'Roboto', sans-serif";
+    document.body.style.fontFamily = defaultFont;
+    ensureGoogleFontsLoaded(['Roboto']);
     return () => {
-      document.body.style.fontFamily = '';
+      document.body.style.fontFamily = defaultFont;
     };
-  }, [template.styles.fontFamily]);
+  }, []);
 
   const footerTip = React.useMemo(() => {
     if (!fields.length) {

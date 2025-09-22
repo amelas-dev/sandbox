@@ -18,10 +18,20 @@ import Dropcursor from '@tiptap/extension-dropcursor';
 import Gapcursor from '@tiptap/extension-gapcursor';
 import { useAppStore, selectDataset, selectTemplate } from '@/store/useAppStore';
 import { MergeTag } from '@/editor/merge-tag-node';
+import { ListStyleBullet, ListStyleOrdered } from '@/editor/extensions/list-style';
 import { getSampleValue } from '@/lib/dataset';
 import type { Editor } from '@tiptap/core';
 import { cn } from '@/lib/utils';
+import { ensureGoogleFontsLoaded } from '@/lib/google-font-loader';
 import { getDocumentBaseStyles, getPageDimensions, getPagePadding } from '@/lib/template-style';
+
+function extractPrimaryFamily(fontStack: string): string {
+  if (!fontStack) {
+    return '';
+  }
+  const first = fontStack.split(',')[0]?.trim() ?? '';
+  return first.replace(/^['"]/, '').replace(/['"]$/, '');
+}
 
 export interface DocumentDesignerProps {
   className?: string;
@@ -52,7 +62,7 @@ export function DocumentDesigner({ className, onEditorReady }: DocumentDesignerP
   const editor = useEditor(
     {
       extensions: [
-        StarterKit.configure({ history: true }),
+        StarterKit.configure({ history: true, bulletList: false, orderedList: false }),
         Placeholder.configure({ placeholder: 'Compose your investor-ready narrative…' }),
         Link.configure({ openOnClick: false, autolink: true }),
         Underline,
@@ -62,6 +72,8 @@ export function DocumentDesigner({ className, onEditorReady }: DocumentDesignerP
         TableRow,
         TableCell,
         TableHeader,
+        ListStyleBullet.configure({ keepMarks: true, keepAttributes: true }),
+        ListStyleOrdered.configure({ keepMarks: true, keepAttributes: true }),
         TextAlign.configure({ types: ['heading', 'paragraph'] }),
         Color,
         TextStyle,
@@ -123,6 +135,16 @@ export function DocumentDesigner({ className, onEditorReady }: DocumentDesignerP
   );
   const page = template.page;
   const { width: pageWidth, height: pageHeight } = pageDimensions;
+
+  React.useEffect(() => {
+    const families = [
+      extractPrimaryFamily(template.styles.fontFamily),
+      extractPrimaryFamily(template.styles.headingFontFamily),
+    ].filter((family) => family.length > 0);
+    if (families.length) {
+      ensureGoogleFontsLoaded(families);
+    }
+  }, [template.styles.fontFamily, template.styles.headingFontFamily]);
 
 
   return (

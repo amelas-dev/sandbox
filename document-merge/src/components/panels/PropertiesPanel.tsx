@@ -18,7 +18,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAppStore } from '@/store/useAppStore';
-import type { ParagraphAlignment, TextTransformOption } from '@/lib/types';
+import type { BulletStyle, NumberedStyle, ParagraphAlignment, TextTransformOption } from '@/lib/types';
+import { GOOGLE_FONT_FAMILIES, GOOGLE_FONT_PRESETS, FONT_PRESET_STACKS } from '@/lib/font-presets';
+import { ensureGoogleFontsLoaded } from '@/lib/google-font-loader';
 
 interface PropertiesPanelProps {
   editor: Editor | null;
@@ -57,6 +59,7 @@ function px(value: number) {
 const selectControlClasses =
   'h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-600 shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100';
 
+
 /**
  * Controls for page layout, visual styling, and persistence preferences. This
  * panel keeps the editing experience aligned with brand guidelines while
@@ -73,6 +76,17 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
   const autosaveEnabled = useAppStore((state) => state.preferences.autosave);
   const updatePreferences = useAppStore((state) => state.updatePreferences);
 
+  const applyStyles = React.useCallback(
+    (next: Partial<typeof styles>) => {
+      updateTemplate({ styles: next });
+    },
+    [updateTemplate],
+  );
+
+  React.useEffect(() => {
+    ensureGoogleFontsLoaded(GOOGLE_FONT_FAMILIES);
+  }, []);
+
   const [, forceSelectionUpdate] = React.useReducer((count: number) => count + 1, 0);
 
   React.useEffect(() => {
@@ -88,29 +102,37 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
     };
   }, [editor, forceSelectionUpdate]);
 
-  const selectionActive = Boolean(editor && !editor.state.selection.empty);
-  const selectionTextStyle = selectionActive && editor ? editor.getAttributes('textStyle') ?? {} : {};
-
+  const textStyleAttributes = (editor?.getAttributes('textStyle') ?? {}) as Record<string, unknown>;
+  const selectionActive = Boolean(editor?.state.selection && !editor.state.selection.empty);
   const selectionFontFamily =
-    typeof (selectionTextStyle as Record<string, unknown>).fontFamily === 'string'
-      ? ((selectionTextStyle as Record<string, unknown>).fontFamily as string)
+    typeof textStyleAttributes.fontFamily === 'string' ? (textStyleAttributes.fontFamily as string) : '';
+  const selectionFontSize = parsePxValue(textStyleAttributes.fontSize) ?? styles.baseFontSize;
+  const selectionLetterSpacingValue = (() => {
+    const raw = textStyleAttributes.letterSpacing;
+    return parseNumber(raw) ?? parsePxValue(raw) ?? styles.letterSpacing;
+  })();
+  const selectionTextTransformValue =
+    typeof textStyleAttributes.textTransform === 'string'
+      ? (textStyleAttributes.textTransform as string)
       : '';
-  const selectionFontSize = selectionActive
-    ? parsePxValue((selectionTextStyle as Record<string, unknown>).fontSize) ?? styles.baseFontSize
-    : styles.baseFontSize;
-  const selectionLetterSpacing = selectionActive
-    ? (() => {
-        const raw = (selectionTextStyle as Record<string, unknown>).letterSpacing;
-        return parseNumber(raw) ?? parsePxValue(raw) ?? styles.letterSpacing;
-      })()
-    : styles.letterSpacing;
-  const selectionTextTransformOverride = selectionActive
-    ? ((selectionTextStyle as Record<string, unknown>).textTransform as string | undefined)
-    : undefined;
 
-  const selectionTransformValue = selectionTextTransformOverride ?? '';
+  const selectionLetterSpacingDisplay = Number(selectionLetterSpacingValue.toFixed(1));
 
-  const selectionLetterSpacingDisplay = Number(selectionLetterSpacing.toFixed(1));
+  const defaultLetterSpacingDisplay = Number(styles.letterSpacing.toFixed(1));
+  const hasSelectionOverrides =
+    Boolean(selectionFontFamily) ||
+    selectionTextTransformValue !== '' ||
+    selectionFontSize !== styles.baseFontSize ||
+    selectionLetterSpacingDisplay !== defaultLetterSpacingDisplay;
+  const selectionControlsDisabled = !editor;
+  const bodyFontSelectValue = FONT_PRESET_STACKS.has(styles.fontFamily) ? styles.fontFamily : 'custom';
+  const headingFontSelectValue = FONT_PRESET_STACKS.has(styles.headingFontFamily) ? styles.headingFontFamily : 'custom';
+  const selectionFontPresetValue = selectionFontFamily
+    ? FONT_PRESET_STACKS.has(selectionFontFamily)
+      ? selectionFontFamily
+      : 'custom'
+    : '__default__';
+
 
   const handleSelectionFontFamilyChange = React.useCallback(
     (value: string) => {
@@ -181,16 +203,55 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
     editor.chain().focus().unsetMark('textStyle').run();
   }, [editor]);
 
-  const selectionAlign =
-    selectionActive && editor
-      ? (['left', 'center', 'right', 'justify'] as const).find((value) => editor.isActive({ textAlign: value })) ?? styles.paragraphAlign
-      : styles.paragraphAlign;
+  const selectionAlign = editor
+    ? (['left', 'center', 'right', 'justify'] as const).find((value) => editor.isActive({ textAlign: value })) ?? styles.paragraphAlign
+    : styles.paragraphAlign;
 
-  const applyStyles = React.useCallback(
-    (next: Partial<typeof styles>) => {
-      updateTemplate({ styles: next });
+  const bulletListAttributes = (editor?.getAttributes('bulletList') ?? {}) as Record<string, unknown>;
+  const orderedListAttributes = (editor?.getAttributes('orderedList') ?? {}) as Record<string, unknown>;
+  const activeBulletStyle = (editor && editor.isActive('bulletList')
+    ? ((bulletListAttributes.listStyle as BulletStyle | undefined) ?? styles.bulletStyle)
+    : styles.bulletStyle);
+  const activeNumberedStyle = (editor && editor.isActive('orderedList')
+    ? ((orderedListAttributes.listStyle as NumberedStyle | undefined) ?? styles.numberedStyle)
+    : styles.numberedStyle);
+
+  const handleBulletStyleChange = React.useCallback(
+    (value: BulletStyle | '') => {
+      if (!value) {
+        return;
+      }
+      if (editor) {
+        const chain = editor.chain().focus();
+        if (editor.isActive('bulletList')) {
+          chain.updateAttributes('bulletList', { listStyle: value }).run();
+        } else {
+          chain.toggleBulletList({ listStyle: value }).run();
+        }
+        return;
+      }
+      applyStyles({ bulletStyle: value });
     },
-    [updateTemplate],
+    [applyStyles, editor],
+  );
+
+  const handleNumberedStyleChange = React.useCallback(
+    (value: NumberedStyle | '') => {
+      if (!value) {
+        return;
+      }
+      if (editor) {
+        const chain = editor.chain().focus();
+        if (editor.isActive('orderedList')) {
+          chain.updateAttributes('orderedList', { listStyle: value }).run();
+        } else {
+          chain.toggleOrderedList({ listStyle: value }).run();
+        }
+        return;
+      }
+      applyStyles({ numberedStyle: value });
+    },
+    [applyStyles, editor],
   );
 
   const handleMarginChange = (side: 'top' | 'right' | 'bottom' | 'left', value: number) => {
@@ -337,118 +398,202 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
             </div>
           </TabsContent>
           <TabsContent value="document" className="space-y-5 pr-1">
-            {selectionActive && (
-              <div className="space-y-4 rounded-xl border border-slate-200 p-3 dark:border-slate-800">
-                <div className="flex items-center justify-between gap-2">
+            <div className="space-y-4 rounded-xl border border-slate-200 p-3 dark:border-slate-800">
+              <div className="flex items-start justify-between gap-2">
+                <div className="space-y-1">
                   <Label className="text-xs uppercase tracking-wide text-slate-400">
                     Selection styling
                   </Label>
-                  <Button variant="ghost" size="xs" onClick={clearSelectionOverrides}>
-                    Clear overrides
-                  </Button>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    {editor
+                      ? selectionActive
+                        ? 'Changes apply to the highlighted text.'
+                        : 'Changes apply to the next text you type.'
+                      : 'Switch to edit mode to format document content.'}
+                  </p>
                 </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="selectionFontFamily">Font family</Label>
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  onClick={clearSelectionOverrides}
+                  disabled={selectionControlsDisabled || !hasSelectionOverrides}
+                >
+                  Clear overrides
+                </Button>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="selectionFontPreset">Font family</Label>
+                  <select
+                    id="selectionFontPreset"
+                    className={selectControlClasses}
+                    value={selectionFontPresetValue}
+                    disabled={selectionControlsDisabled}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      if (value === '__default__') {
+                        handleSelectionFontFamilyChange('');
+                        return;
+                      }
+                      if (value === 'custom') {
+                        return;
+                      }
+                      handleSelectionFontFamilyChange(value);
+                    }}
+                  >
+                    <option value="__default__">Document default ({styles.fontFamily})</option>
+                    {GOOGLE_FONT_PRESETS.map((font) => (
+                      <option key={font.stack} value={font.stack}>
+                        {font.label}
+                      </option>
+                    ))}
+                    <option value="custom">Custom...</option>
+                  </select>
+                  {selectionFontPresetValue === 'custom' && (
                     <Input
-                      id="selectionFontFamily"
+                      id="selectionFontFamilyCustom"
                       value={selectionFontFamily}
-                      placeholder={styles.fontFamily}
+                      placeholder="Enter custom font stack"
+                      disabled={selectionControlsDisabled}
                       onChange={(event) => handleSelectionFontFamilyChange(event.target.value)}
                     />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="selectionTextTransform">Text case</Label>
-                    <select
-                      id="selectionTextTransform"
-                      className={selectControlClasses}
-                      value={selectionTransformValue}
-                      onChange={(event) => handleSelectionTransformChange(event.target.value)}
-                    >
-                      <option value="">Document default</option>
-                      <option value="none">Normal</option>
-                      <option value="capitalize">Title Case</option>
-                      <option value="uppercase">Uppercase</option>
-                    </select>
-                  </div>
+                  )}
                 </div>
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs text-slate-500">
-                      <span className="uppercase tracking-wide text-slate-400">Font size</span>
-                      <span>{selectionFontSize}px</span>
-                    </div>
-                    <Slider
-                      value={[selectionFontSize]}
-                      onValueChange={(value) =>
-                        handleSelectionFontSizeChange(value[0] ?? selectionFontSize)
-                      }
-                      min={8}
-                      max={72}
-                      step={1}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-xs text-slate-500">
-                      <span className="uppercase tracking-wide text-slate-400">Letter spacing</span>
-                      <span>{selectionLetterSpacingDisplay.toFixed(1)}px</span>
-                    </div>
-                    <Slider
-                      value={[selectionLetterSpacingDisplay]}
-                      onValueChange={(value) =>
-                        handleSelectionLetterSpacingChange(value[0] ?? selectionLetterSpacingDisplay)
-                      }
-                      min={-1}
-                      max={5}
-                      step={0.1}
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-xs uppercase tracking-wide text-slate-400">
-                    Paragraph alignment
-                  </Label>
-                  <ToggleGroup
-                    type="single"
-                    value={selectionAlign}
-                    onValueChange={(value) =>
-                      handleSelectionAlignChange(value as ParagraphAlignment)
-                    }
-                    className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4"
+                <div className="space-y-2">
+                  <Label htmlFor="selectionTextTransform">Text case</Label>
+                  <select
+                    id="selectionTextTransform"
+                    className={selectControlClasses}
+                    value={selectionTextTransformValue}
+                    disabled={selectionControlsDisabled}
+                    onChange={(event) => handleSelectionTransformChange(event.target.value)}
                   >
-                    <ToggleGroupItem value="left" aria-label="Align left" className="h-10 justify-center">
-                      <AlignLeft className="h-5 w-5" />
-                    </ToggleGroupItem>
-                    <ToggleGroupItem value="center" aria-label="Align center" className="h-10 justify-center">
-                      <AlignCenter className="h-5 w-5" />
-                    </ToggleGroupItem>
-                    <ToggleGroupItem value="right" aria-label="Align right" className="h-10 justify-center">
-                      <AlignRight className="h-5 w-5" />
-                    </ToggleGroupItem>
-                    <ToggleGroupItem value="justify" aria-label="Justify" className="h-10 justify-center">
-                      <AlignJustify className="h-5 w-5" />
-                    </ToggleGroupItem>
-                  </ToggleGroup>
+                    <option value="">Document default</option>
+                    <option value="none">Normal</option>
+                    <option value="capitalize">Title Case</option>
+                    <option value="uppercase">Uppercase</option>
+                  </select>
                 </div>
               </div>
-            )}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs text-slate-500">
+                    <span className="uppercase tracking-wide text-slate-400">Font size</span>
+                    <span>{selectionFontSize}px</span>
+                  </div>
+                  <Slider
+                    value={[selectionFontSize]}
+                    disabled={selectionControlsDisabled}
+                    onValueChange={(value) =>
+                      handleSelectionFontSizeChange(value[0] ?? selectionFontSize)
+                    }
+                    min={8}
+                    max={72}
+                    step={1}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs text-slate-500">
+                    <span className="uppercase tracking-wide text-slate-400">Letter spacing</span>
+                    <span>{selectionLetterSpacingDisplay.toFixed(1)}px</span>
+                  </div>
+                  <Slider
+                    value={[selectionLetterSpacingDisplay]}
+                    disabled={selectionControlsDisabled}
+                    onValueChange={(value) =>
+                      handleSelectionLetterSpacingChange(value[0] ?? selectionLetterSpacingDisplay)
+                    }
+                    min={-1}
+                    max={5}
+                    step={0.1}
+                  />
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs uppercase tracking-wide text-slate-400">Paragraph alignment</Label>
+                <ToggleGroup
+                  type="single"
+                  value={selectionAlign}
+                  onValueChange={(value) => handleSelectionAlignChange(value as ParagraphAlignment)}
+                  className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4"
+                  disabled={selectionControlsDisabled}
+                >
+                  <ToggleGroupItem value="left" aria-label="Align left" className="h-10 justify-center">
+                    <AlignLeft className="h-5 w-5" />
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="center" aria-label="Align center" className="h-10 justify-center">
+                    <AlignCenter className="h-5 w-5" />
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="right" aria-label="Align right" className="h-10 justify-center">
+                    <AlignRight className="h-5 w-5" />
+                  </ToggleGroupItem>
+                  <ToggleGroupItem value="justify" aria-label="Justify" className="h-10 justify-center">
+                    <AlignJustify className="h-5 w-5" />
+                  </ToggleGroupItem>
+                </ToggleGroup>
+              </div>
+            </div>
             <div className="space-y-4 rounded-xl border border-slate-200 p-3 dark:border-slate-800">
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="bodyFontFamily">Body font</Label>
-                  <Input
+                  <select
                     id="bodyFontFamily"
-                    value={styles.fontFamily}
-                    onChange={(event) => applyStyles({ fontFamily: event.target.value })}
-                  />
+                    className={selectControlClasses}
+                    value={bodyFontSelectValue}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      if (value === 'custom') {
+                        return;
+                      }
+                      applyStyles({ fontFamily: value });
+                    }}
+                  >
+                    {GOOGLE_FONT_PRESETS.map((font) => (
+                      <option key={font.stack} value={font.stack}>
+                        {font.label}
+                      </option>
+                    ))}
+                    <option value="custom">Custom...</option>
+                  </select>
+                  {bodyFontSelectValue === 'custom' && (
+                    <Input
+                      id="bodyFontCustom"
+                      value={styles.fontFamily}
+                      onChange={(event) => applyStyles({ fontFamily: event.target.value })}
+                      placeholder="Enter custom font stack"
+                    />
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="headingFontFamily">Heading font</Label>
-                  <Input
+                  <select
                     id="headingFontFamily"
-                    value={styles.headingFontFamily}
-                    onChange={(event) => applyStyles({ headingFontFamily: event.target.value })}
-                  />
+                    className={selectControlClasses}
+                    value={headingFontSelectValue}
+                    onChange={(event) => {
+                      const value = event.target.value;
+                      if (value === 'custom') {
+                        return;
+                      }
+                      applyStyles({ headingFontFamily: value });
+                    }}
+                  >
+                    {GOOGLE_FONT_PRESETS.map((font) => (
+                      <option key={font.stack} value={font.stack}>
+                        {font.label}
+                      </option>
+                    ))}
+                    <option value="custom">Custom...</option>
+                  </select>
+                  {headingFontSelectValue === 'custom' && (
+                    <Input
+                      id="headingFontCustom"
+                      value={styles.headingFontFamily}
+                      onChange={(event) => applyStyles({ headingFontFamily: event.target.value })}
+                      placeholder="Enter custom font stack"
+                    />
+                  )}
                 </div>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -653,10 +798,8 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
                 </Label>
                 <ToggleGroup
                   type="single"
-                  value={styles.bulletStyle}
-                  onValueChange={(value) =>
-                    value && applyStyles({ bulletStyle: value as typeof styles.bulletStyle })
-                  }
+                  value={activeBulletStyle}
+                  onValueChange={(value) => handleBulletStyleChange(value as BulletStyle | '')}
                   className="mt-2 grid grid-cols-3 gap-2"
                 >
                   <ToggleGroupItem value="disc" className="h-10 justify-center">Disc</ToggleGroupItem>
@@ -670,10 +813,8 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
                 </Label>
                 <ToggleGroup
                   type="single"
-                  value={styles.numberedStyle}
-                  onValueChange={(value) =>
-                    value && applyStyles({ numberedStyle: value as typeof styles.numberedStyle })
-                  }
+                  value={activeNumberedStyle}
+                  onValueChange={(value) => handleNumberedStyleChange(value as NumberedStyle | '')}
                   className="mt-2 grid grid-cols-3 gap-2"
                 >
                   <ToggleGroupItem value="decimal" className="h-10 justify-center">1.</ToggleGroupItem>
