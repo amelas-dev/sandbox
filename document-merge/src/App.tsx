@@ -136,7 +136,7 @@ export default function App() {
       <div className='mx-auto flex min-h-screen w-full max-w-screen-2xl flex-col gap-6 px-4 pt-6 sm:px-6 lg:gap-8'>
         <AppHeader />
         <div className='grid flex-1 grid-cols-1 items-start gap-4 lg:[grid-template-columns:320px_minmax(0,1fr)] xl:[grid-template-columns:320px_minmax(0,1fr)_360px] 2xl:[grid-template-columns:340px_minmax(0,1fr)_380px]'>
-          <aside className='order-1 flex min-h-[220px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/80 lg:sticky lg:top-24 lg:max-h-[calc(100vh-12rem)]'>
+          <aside className='order-1 flex min-h-[220px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/80 lg:sticky lg:top-24 lg:h-[calc(100vh-12rem)] lg:max-h-[calc(100vh-12rem)]'>
             <div className='mb-4 flex flex-wrap items-center justify-between gap-2'>
               <h2 className='text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400'>
                 Field palette

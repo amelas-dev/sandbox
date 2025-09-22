@@ -24,6 +24,32 @@ export interface Dataset {
 export type PageSize = 'Letter' | 'A4';
 export type Orientation = 'portrait' | 'landscape';
 
+export type ParagraphAlignment = 'left' | 'center' | 'right' | 'justify';
+export type TextTransformOption = 'none' | 'uppercase' | 'capitalize';
+export type HeadingWeight = '400' | '500' | '600' | '700' | '800';
+export type BulletStyle = 'disc' | 'circle' | 'square';
+export type NumberedStyle = 'decimal' | 'lower-alpha' | 'upper-roman';
+
+export interface TemplateTypography {
+  fontFamily: string;
+  baseFontSize: number;
+  theme: 'light' | 'dark';
+  textColor: string;
+  headingFontFamily: string;
+  headingWeight: HeadingWeight;
+  headingColor: string;
+  headingTransform: TextTransformOption;
+  textTransform: TextTransformOption;
+  paragraphAlign: ParagraphAlignment;
+  lineHeight: number;
+  paragraphSpacing: number;
+  letterSpacing: number;
+  bulletStyle: BulletStyle;
+  numberedStyle: NumberedStyle;
+  linkColor: string;
+  highlightColor: string;
+}
+
 export interface TemplateDoc {
   content: unknown;
   page: {
@@ -31,11 +57,7 @@ export interface TemplateDoc {
     orientation: Orientation;
     margins: { top: number; right: number; bottom: number; left: number };
   };
-  styles: {
-    fontFamily: string;
-    baseFontSize: number;
-    theme: 'light' | 'dark';
-  };
+  styles: TemplateTypography;
 }
 
 export interface GenerationFilter {

@@ -83,8 +83,46 @@ const DEFAULT_TEMPLATE: TemplateDoc = {
     fontFamily: 'Inter, system-ui, sans-serif',
     baseFontSize: 14,
     theme: 'light',
+    textColor: '#0f172a',
+    headingFontFamily: 'Inter, system-ui, sans-serif',
+    headingWeight: '700',
+    headingColor: '#111827',
+    headingTransform: 'none',
+    textTransform: 'none',
+    paragraphAlign: 'left',
+    lineHeight: 1.6,
+    paragraphSpacing: 16,
+    letterSpacing: 0,
+    bulletStyle: 'disc',
+    numberedStyle: 'decimal',
+    linkColor: '#2563eb',
+    highlightColor: '#fef08a',
   },
 };
+function withTemplateDefaults(template?: TemplateDoc): TemplateDoc {
+  if (!template) {
+    return DEFAULT_TEMPLATE;
+  }
+  return {
+    ...DEFAULT_TEMPLATE,
+    ...template,
+    page: {
+      ...DEFAULT_TEMPLATE.page,
+      ...(template.page ?? DEFAULT_TEMPLATE.page),
+      margins: {
+        ...DEFAULT_TEMPLATE.page.margins,
+        ...(template.page?.margins ?? DEFAULT_TEMPLATE.page.margins),
+      },
+    },
+    styles: {
+      ...DEFAULT_TEMPLATE.styles,
+      ...(template.styles ?? DEFAULT_TEMPLATE.styles),
+    },
+    content: template.content ?? DEFAULT_TEMPLATE.content,
+  };
+}
+
+
 
 /**
  * Default document generation options presented to the user.
@@ -222,7 +260,7 @@ export const useAppStore = create<AppState>()(
       merge: (persisted: Partial<PersistedState> | undefined, current) => ({
         ...current,
         ...persisted,
-        template: persisted?.template ?? current.template,
+        template: withTemplateDefaults(persisted?.template ?? current.template),
         preferences: { ...current.preferences, ...(persisted?.preferences ?? {}) },
         dataset: persisted?.dataset ?? current.dataset,
       }),

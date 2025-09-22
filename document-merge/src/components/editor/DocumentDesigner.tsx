@@ -137,15 +137,56 @@ export function DocumentDesigner({ className, onEditorReady }: DocumentDesignerP
     paddingLeft: ptsToPx(page.margins.left),
   } as React.CSSProperties;
 
-  const baseStyles = React.useMemo<React.CSSProperties>(
-    () => ({
-      fontFamily: template.styles.fontFamily,
-      fontSize: `${template.styles.baseFontSize}px`,
-      lineHeight: 1.6,
-      color: template.styles.theme === 'dark' ? 'rgb(226 232 240)' : 'inherit',
-    }),
-    [template.styles.fontFamily, template.styles.baseFontSize, template.styles.theme],
-  );
+  const resolvedTextColor = React.useMemo(() => {
+    if (template.styles.theme === 'dark' && template.styles.textColor === '#0f172a') {
+      return '#e2e8f0';
+    }
+    return template.styles.textColor;
+  }, [template.styles.textColor, template.styles.theme]);
+
+  const resolvedHeadingColor = React.useMemo(() => {
+    if (template.styles.theme === 'dark' && template.styles.headingColor === '#111827') {
+      return '#f8fafc';
+    }
+    return template.styles.headingColor;
+  }, [template.styles.headingColor, template.styles.theme]);
+
+  const baseStyles = React.useMemo<React.CSSProperties>(() => ({
+    fontFamily: template.styles.fontFamily,
+    fontSize: `${template.styles.baseFontSize}px`,
+    lineHeight: template.styles.lineHeight,
+    letterSpacing: `${template.styles.letterSpacing}px`,
+    textTransform: template.styles.textTransform,
+    textAlign: template.styles.paragraphAlign,
+    color: resolvedTextColor,
+    '--dm-body-color': resolvedTextColor,
+    '--dm-heading-font-family': template.styles.headingFontFamily,
+    '--dm-heading-weight': template.styles.headingWeight,
+    '--dm-heading-color': resolvedHeadingColor,
+    '--dm-heading-transform': template.styles.headingTransform,
+    '--dm-paragraph-spacing': `${template.styles.paragraphSpacing}px`,
+    '--dm-link-color': template.styles.linkColor,
+    '--dm-highlight-color': template.styles.highlightColor,
+    '--dm-bullet-style': template.styles.bulletStyle,
+    '--dm-number-style': template.styles.numberedStyle,
+  }), [
+    resolvedHeadingColor,
+    resolvedTextColor,
+    template.styles.baseFontSize,
+    template.styles.bulletStyle,
+    template.styles.fontFamily,
+    template.styles.headingFontFamily,
+    template.styles.headingTransform,
+    template.styles.headingWeight,
+    template.styles.highlightColor,
+    template.styles.letterSpacing,
+    template.styles.linkColor,
+    template.styles.lineHeight,
+    template.styles.numberedStyle,
+    template.styles.paragraphAlign,
+    template.styles.paragraphSpacing,
+    template.styles.textTransform,
+  ]);
 
   return (
     <div
@@ -169,7 +210,11 @@ export function DocumentDesigner({ className, onEditorReady }: DocumentDesignerP
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(99,102,241,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(99,102,241,0.08)_1px,transparent_1px)] [background-size:32px_32px]" />
         )}
         <div className="absolute inset-0 overflow-auto">
-          <div style={{ ...padding, ...baseStyles }} className="relative h-full w-full">
+          <div
+            style={{ ...padding, ...baseStyles }}
+            className="relative h-full w-full"
+            data-document-typography
+          >
             <EditorContent editor={editor} />
           </div>
         </div>

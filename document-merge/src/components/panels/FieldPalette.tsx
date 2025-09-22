@@ -3,7 +3,6 @@ import { MousePointerClick, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Badge } from '@/components/ui/badge';
 import {
   Tooltip,
   TooltipContent,
@@ -37,6 +36,17 @@ function highlightMatch(text: string, query: string): React.ReactNode {
   );
 }
 
+function formatFieldType(type: string): string {
+  const normalized = type.replace(/[-_\s]+/g, ' ').trim();
+  if (!normalized) return '';
+  return normalized
+    .toLowerCase()
+    .split(' ')
+    .filter(Boolean)
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(' ');
+}
+
 function FieldChip({
   fieldKey,
   label,
@@ -52,6 +62,7 @@ function FieldChip({
 }) {
   const previewRow = useAppStore(selectPreviewRow);
   const value = previewRow ? String(previewRow[fieldKey] ?? '') : '';
+  const formattedType = React.useMemo(() => formatFieldType(type), [type]);
   const handlePointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
     if (event.pointerType !== 'touch') {
       event.preventDefault();
@@ -73,29 +84,25 @@ function FieldChip({
             onPointerDown={handlePointerDown}
             onKeyDown={handleKeyDown}
             className={cn(
-              'group flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 text-left text-sm shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900',
+              'group flex w-full items-start gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 text-left text-sm shadow-sm transition hover:-translate-y-0.5 hover:shadow-md dark:border-slate-800 dark:bg-slate-900',
             )}
             aria-label={`Merge field ${label}`}
           >
-            <span className='flex min-w-0 flex-1 items-center gap-2'>
-              <MousePointerClick className='h-4 w-4 shrink-0 text-slate-300 group-hover:text-brand-500' />
+            <span className='flex min-w-0 flex-1 items-start gap-2'>
+              <MousePointerClick className='mt-0.5 h-4 w-4 shrink-0 text-slate-300 group-hover:text-brand-500' />
               <span className='min-w-0 break-words text-left font-medium text-slate-700 dark:text-slate-200'>
                 {highlightMatch(label, query)}
-                <span className='block text-xs font-normal text-slate-500 dark:text-slate-400'>
-                  {highlightMatch(fieldKey, query)}
-                </span>
+                {formattedType && (
+                  <span className='mt-1 block text-xs font-normal text-slate-500 dark:text-slate-400'>
+                    {highlightMatch(formattedType, query)}
+                  </span>
+                )}
               </span>
             </span>
-            <Badge
-              variant='outline'
-              className='ml-2 shrink-0 rounded-full border-slate-200 bg-slate-50 text-[10px] uppercase tracking-wide text-slate-500 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-300'
-            >
-              {type}
-            </Badge>
           </button>
         </TooltipTrigger>
         <TooltipContent className='max-w-xs'>
-          Sample value: {value || '—'}
+          Sample value: {value || '\u2014'}
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
@@ -117,7 +124,8 @@ export function FieldPalette({ onInsertField }: FieldPaletteProps) {
     return fields.filter(
       (field) =>
         field.label.toLowerCase().includes(query) ||
-        field.key.toLowerCase().includes(query),
+        field.key.toLowerCase().includes(query) ||
+        formatFieldType(field.type).toLowerCase().includes(query),
     );
   }, [fields, filter]);
 
@@ -136,13 +144,13 @@ export function FieldPalette({ onInsertField }: FieldPaletteProps) {
   }
 
   return (
-    <div className='flex h-full flex-col'>
+    <div className='flex flex-1 min-h-0 flex-col'>
       <div className='flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm dark:border-slate-800 dark:bg-slate-900'>
         <Search className='h-4 w-4 text-slate-400' />
         <Input
           value={filter}
           onChange={(event) => setFilter(event.target.value)}
-          placeholder='Search fields…'
+          placeholder={'Search fields\u2026'}
           className='border-none bg-transparent p-0 text-sm shadow-none focus-visible:ring-0'
         />
         {filter && (
@@ -156,7 +164,7 @@ export function FieldPalette({ onInsertField }: FieldPaletteProps) {
           </Button>
         )}
       </div>
-      <ScrollArea className='mt-4 flex-1'>
+      <ScrollArea className='mt-4 flex-1 min-h-0'>
         <div className='flex flex-col gap-3 pr-2'>
           {filteredFields.map((field) => (
             <FieldChip

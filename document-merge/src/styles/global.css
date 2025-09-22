@@ -17,3 +17,56 @@ body {
 * {
   @apply outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2;
 }
+
+[data-document-typography] {
+  color: var(--dm-body-color);
+}
+
+[data-document-typography] p {
+  margin-block-end: var(--dm-paragraph-spacing);
+}
+
+[data-document-typography] p:last-child {
+  margin-block-end: 0;
+}
+
+[data-document-typography] :is(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--dm-heading-font-family);
+  font-weight: var(--dm-heading-weight);
+  color: var(--dm-heading-color);
+  text-transform: var(--dm-heading-transform);
+  margin-block-start: calc(var(--dm-paragraph-spacing) * 1.25);
+  margin-block-end: calc(var(--dm-paragraph-spacing) * 0.5);
+}
+
+[data-document-typography] a {
+  color: var(--dm-link-color);
+  text-decoration: underline;
+}
+
+[data-document-typography] mark {
+  background-color: var(--dm-highlight-color);
+  color: inherit;
+  padding-inline: 0.125rem;
+  border-radius: 0.25rem;
+}
+
+[data-document-typography] ul {
+  list-style-type: var(--dm-bullet-style);
+  margin-block-end: var(--dm-paragraph-spacing);
+  padding-left: 1.5rem;
+}
+
+[data-document-typography] ol {
+  list-style-type: var(--dm-number-style);
+  margin-block-end: var(--dm-paragraph-spacing);
+  padding-left: 1.5rem;
+}
+
+[data-document-typography] li {
+  margin-block-end: calc(var(--dm-paragraph-spacing) * 0.5);
+}
+
+[data-document-typography] li:last-child {
+  margin-block-end: 0;
+}
