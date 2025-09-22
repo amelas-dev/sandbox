@@ -3,9 +3,12 @@ import type { Editor } from '@tiptap/core';
 import { AppHeader } from '@/components/layout/AppHeader';
 import { FieldPalette } from '@/components/panels/FieldPalette';
 import { DocumentDesigner } from '@/components/editor/DocumentDesigner';
+import { DocumentPreview } from '@/components/preview/DocumentPreview';
 import { PropertiesPanel } from '@/components/panels/PropertiesPanel';
 import { Badge } from '@/components/ui/badge';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { useAppStore, selectFieldPalette } from '@/store/useAppStore';
+import type { CanvasMode } from '@/lib/types';
 
 /**
  * Rotating guidance surfaced in the footer to help first-time users discover
@@ -28,6 +31,8 @@ export default function App() {
   const previewIndex = useAppStore((state) => state.previewIndex);
   const autosaveEnabled = useAppStore((state) => state.preferences.autosave);
   const fields = useAppStore(selectFieldPalette);
+  const canvasMode = useAppStore((state) => state.canvasMode);
+  const setCanvasMode = useAppStore((state) => state.setCanvasMode);
   const [editor, setEditor] = React.useState<Editor | null>(null);
   const [saveState, setSaveState] = React.useState<'idle' | 'saving' | 'saved'>(
     autosaveEnabled ? 'saved' : 'idle',
@@ -45,6 +50,12 @@ export default function App() {
   const handleEditorReady = React.useCallback((instance: Editor) => {
     setEditor(instance);
   }, []);
+  const handleModeChange = React.useCallback((value: string) => {
+    if (value === 'edit' || value === 'preview') {
+      setCanvasMode(value as CanvasMode);
+    }
+  }, [setCanvasMode]);
+
 
   const fieldLookup = React.useMemo(() => {
     const map = new Map<string, string>();
@@ -151,17 +162,33 @@ export default function App() {
           </aside>
           <main className='order-2 flex min-h-[420px] min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/95 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/80 lg:min-h-[560px]'>
             <div className='flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-3 text-xs uppercase tracking-wide text-slate-400 dark:border-slate-800 dark:text-slate-500 sm:px-6'>
-              <span>Document designer</span>
+              <div className='flex flex-wrap items-center gap-3'>
+                <span>Document workspace</span>
+                <ToggleGroup
+                  type='single'
+                  value={canvasMode}
+                  onValueChange={handleModeChange}
+                  aria-label='Document mode'
+                  className='flex rounded-lg border border-slate-200 bg-white p-1 text-[11px] font-semibold tracking-wider text-slate-500 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300'
+                >
+                  <ToggleGroupItem value='edit' className='px-3 py-1 text-[11px] uppercase data-[state=on]:bg-brand-500 data-[state=on]:text-white'>Edit template</ToggleGroupItem>
+                  <ToggleGroupItem value='preview' className='px-3 py-1 text-[11px] uppercase data-[state=on]:bg-brand-500 data-[state=on]:text-white'>Preview</ToggleGroupItem>
+                </ToggleGroup>
+              </div>
               <span className='flex items-center gap-1 whitespace-nowrap'>
                 <span>Page {template.page.size}</span>
-                <span aria-hidden='true'>•</span>
+                <span aria-hidden='true'>/</span>
                 <span className='capitalize'>
                   {template.page.orientation}
                 </span>
               </span>
             </div>
             <div className='flex-1'>
-              <DocumentDesigner onEditorReady={handleEditorReady} className='h-full' />
+              {canvasMode === 'preview' ? (
+                <DocumentPreview className='h-full' />
+              ) : (
+                <DocumentDesigner onEditorReady={handleEditorReady} className='h-full' />
+              )}
             </div>
           </main>
           <aside className='order-3 flex min-h-[220px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/80 lg:col-span-2 lg:flex-row lg:gap-6 lg:py-6 xl:col-span-1 xl:flex-col xl:gap-0 xl:py-5'>
@@ -169,7 +196,7 @@ export default function App() {
               Properties
             </div>
             <div className='flex-1'>
-              <PropertiesPanel />
+              <PropertiesPanel editor={canvasMode === 'edit' ? editor : null} />
             </div>
           </aside>
         </div>

@@ -6,6 +6,7 @@ import type {
   GenerationOptions,
   PersistedState,
   TemplateDoc,
+  CanvasMode,
 } from '@/lib/types';
 
 /**
@@ -151,6 +152,7 @@ interface AppState {
   template: TemplateDoc;
   preferences: PersistedState['preferences'];
   previewIndex: number;
+  canvasMode: CanvasMode;
   mergeTagFilter: string;
   selection: number[];
   zoom: number;
@@ -161,6 +163,7 @@ interface AppState {
   updateTemplate: (update: Partial<TemplateDoc>) => void;
   setTemplateContent: (content: TemplateDoc['content']) => void;
   setPreviewIndex: (index: number) => void;
+  setCanvasMode: (mode: CanvasMode) => void;
   setMergeTagFilter: (value: string) => void;
   setSelection: (indexes: number[]) => void;
   setZoom: (zoom: number) => void;
@@ -189,6 +192,7 @@ export const useAppStore = create<AppState>()(
         lastPreviewIndex: 0,
       },
       previewIndex: 0,
+      canvasMode: 'edit',
       mergeTagFilter: '',
       selection: [],
       zoom: 1,
@@ -208,6 +212,7 @@ export const useAppStore = create<AppState>()(
           importIssues: [],
           headerReport: [],
           previewIndex: 0,
+          canvasMode: 'edit',
           selection: [],
           preferences: {
             ...state.preferences,
@@ -235,6 +240,7 @@ export const useAppStore = create<AppState>()(
           previewIndex: index,
           preferences: { ...state.preferences, lastPreviewIndex: index },
         })),
+      setCanvasMode: (mode) => set({ canvasMode: mode }),
       setMergeTagFilter: (value) => set({ mergeTagFilter: value }),
       setSelection: (indexes) => set({ selection: indexes }),
       setZoom: (zoom) => set({ zoom }),

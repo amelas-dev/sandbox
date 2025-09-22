@@ -1,4 +1,5 @@
 import * as React from 'react';
+import type { Editor } from '@tiptap/core';
 import {
   AlignCenter,
   AlignJustify,
@@ -17,13 +18,51 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAppStore } from '@/store/useAppStore';
+import type { ParagraphAlignment, TextTransformOption } from '@/lib/types';
+
+interface PropertiesPanelProps {
+  editor: Editor | null;
+}
+
+function parsePxValue(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return Math.round(value);
+  }
+  if (typeof value === 'string') {
+    const numeric = Number.parseFloat(value.replace('px', '').trim());
+    if (Number.isFinite(numeric)) {
+      return Math.round(numeric);
+    }
+  }
+  return undefined;
+}
+
+function parseNumber(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === 'string') {
+    const numeric = Number.parseFloat(value);
+    if (Number.isFinite(numeric)) {
+      return numeric;
+    }
+  }
+  return undefined;
+}
+
+function px(value: number) {
+  return `${value}px`;
+}
+
+const selectControlClasses =
+  'h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-600 shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100';
 
 /**
  * Controls for page layout, visual styling, and persistence preferences. This
  * panel keeps the editing experience aligned with brand guidelines while
  * exposing power-user toggles such as autosave and grid guides.
  */
-export function PropertiesPanel() {
+export function PropertiesPanel({ editor }: PropertiesPanelProps) {
   const template = useAppStore((state) => state.template);
   const updateTemplate = useAppStore((state) => state.updateTemplate);
   const styles = template.styles;
@@ -33,6 +72,119 @@ export function PropertiesPanel() {
   const toggleGrid = useAppStore((state) => state.toggleGrid);
   const autosaveEnabled = useAppStore((state) => state.preferences.autosave);
   const updatePreferences = useAppStore((state) => state.updatePreferences);
+
+  const [, forceSelectionUpdate] = React.useReducer((count: number) => count + 1, 0);
+
+  React.useEffect(() => {
+    if (!editor) {
+      return;
+    }
+    const handleUpdate = () => forceSelectionUpdate();
+    editor.on('selectionUpdate', handleUpdate);
+    editor.on('transaction', handleUpdate);
+    return () => {
+      editor.off('selectionUpdate', handleUpdate);
+      editor.off('transaction', handleUpdate);
+    };
+  }, [editor, forceSelectionUpdate]);
+
+  const selectionActive = Boolean(editor && !editor.state.selection.empty);
+  const selectionTextStyle = selectionActive && editor ? editor.getAttributes('textStyle') ?? {} : {};
+
+  const selectionFontFamily =
+    typeof (selectionTextStyle as Record<string, unknown>).fontFamily === 'string'
+      ? ((selectionTextStyle as Record<string, unknown>).fontFamily as string)
+      : '';
+  const selectionFontSize = selectionActive
+    ? parsePxValue((selectionTextStyle as Record<string, unknown>).fontSize) ?? styles.baseFontSize
+    : styles.baseFontSize;
+  const selectionLetterSpacing = selectionActive
+    ? (() => {
+        const raw = (selectionTextStyle as Record<string, unknown>).letterSpacing;
+        return parseNumber(raw) ?? parsePxValue(raw) ?? styles.letterSpacing;
+      })()
+    : styles.letterSpacing;
+  const selectionTextTransformOverride = selectionActive
+    ? ((selectionTextStyle as Record<string, unknown>).textTransform as string | undefined)
+    : undefined;
+
+  const selectionTransformValue = selectionTextTransformOverride ?? '';
+
+  const selectionLetterSpacingDisplay = Number(selectionLetterSpacing.toFixed(1));
+
+  const handleSelectionFontFamilyChange = React.useCallback(
+    (value: string) => {
+      if (!editor) {
+        return;
+      }
+      const next = value.trim();
+      const chain = editor.chain().focus();
+      if (!next) {
+        chain.updateAttributes('textStyle', { fontFamily: null }).run();
+        return;
+      }
+      chain.setMark('textStyle', { fontFamily: next }).run();
+    },
+    [editor],
+  );
+
+  const handleSelectionFontSizeChange = React.useCallback(
+    (value: number) => {
+      if (!editor || Number.isNaN(value)) {
+        return;
+      }
+      editor.chain().focus().setMark('textStyle', { fontSize: px(Math.round(value)) }).run();
+    },
+    [editor],
+  );
+
+  const handleSelectionLetterSpacingChange = React.useCallback(
+    (value: number) => {
+      if (!editor || Number.isNaN(value)) {
+        return;
+      }
+      const next = Number(value.toFixed(1));
+      editor.chain().focus().setMark('textStyle', { letterSpacing: `${next}px` }).run();
+    },
+    [editor],
+  );
+
+  const handleSelectionTransformChange = React.useCallback(
+    (value: string) => {
+      if (!editor) {
+        return;
+      }
+      const chain = editor.chain().focus();
+      if (value === '') {
+        chain.updateAttributes('textStyle', { textTransform: null }).run();
+        return;
+      }
+      chain.setMark('textStyle', { textTransform: value as TextTransformOption }).run();
+    },
+    [editor],
+  );
+
+  const handleSelectionAlignChange = React.useCallback(
+    (value: ParagraphAlignment | '') => {
+      if (!editor || !value) {
+        return;
+      }
+      editor.chain().focus().setTextAlign(value).run();
+    },
+    [editor],
+  );
+
+  const clearSelectionOverrides = React.useCallback(() => {
+    if (!editor) {
+      return;
+    }
+    editor.chain().focus().unsetMark('textStyle').run();
+  }, [editor]);
+
+  const selectionAlign =
+    selectionActive && editor
+      ? (['left', 'center', 'right', 'justify'] as const).find((value) => editor.isActive({ textAlign: value })) ?? styles.paragraphAlign
+      : styles.paragraphAlign;
 
   const applyStyles = React.useCallback(
     (next: Partial<typeof styles>) => {
@@ -185,6 +337,101 @@ export function PropertiesPanel() {
             </div>
           </TabsContent>
           <TabsContent value="document" className="space-y-5 pr-1">
+            {selectionActive && (
+              <div className="space-y-4 rounded-xl border border-slate-200 p-3 dark:border-slate-800">
+                <div className="flex items-center justify-between gap-2">
+                  <Label className="text-xs uppercase tracking-wide text-slate-400">
+                    Selection styling
+                  </Label>
+                  <Button variant="ghost" size="xs" onClick={clearSelectionOverrides}>
+                    Clear overrides
+                  </Button>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="selectionFontFamily">Font family</Label>
+                    <Input
+                      id="selectionFontFamily"
+                      value={selectionFontFamily}
+                      placeholder={styles.fontFamily}
+                      onChange={(event) => handleSelectionFontFamilyChange(event.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="selectionTextTransform">Text case</Label>
+                    <select
+                      id="selectionTextTransform"
+                      className={selectControlClasses}
+                      value={selectionTransformValue}
+                      onChange={(event) => handleSelectionTransformChange(event.target.value)}
+                    >
+                      <option value="">Document default</option>
+                      <option value="none">Normal</option>
+                      <option value="capitalize">Title Case</option>
+                      <option value="uppercase">Uppercase</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs text-slate-500">
+                      <span className="uppercase tracking-wide text-slate-400">Font size</span>
+                      <span>{selectionFontSize}px</span>
+                    </div>
+                    <Slider
+                      value={[selectionFontSize]}
+                      onValueChange={(value) =>
+                        handleSelectionFontSizeChange(value[0] ?? selectionFontSize)
+                      }
+                      min={8}
+                      max={72}
+                      step={1}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs text-slate-500">
+                      <span className="uppercase tracking-wide text-slate-400">Letter spacing</span>
+                      <span>{selectionLetterSpacingDisplay.toFixed(1)}px</span>
+                    </div>
+                    <Slider
+                      value={[selectionLetterSpacingDisplay]}
+                      onValueChange={(value) =>
+                        handleSelectionLetterSpacingChange(value[0] ?? selectionLetterSpacingDisplay)
+                      }
+                      min={-1}
+                      max={5}
+                      step={0.1}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs uppercase tracking-wide text-slate-400">
+                    Paragraph alignment
+                  </Label>
+                  <ToggleGroup
+                    type="single"
+                    value={selectionAlign}
+                    onValueChange={(value) =>
+                      handleSelectionAlignChange(value as ParagraphAlignment)
+                    }
+                    className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4"
+                  >
+                    <ToggleGroupItem value="left" aria-label="Align left" className="h-10 justify-center">
+                      <AlignLeft className="h-5 w-5" />
+                    </ToggleGroupItem>
+                    <ToggleGroupItem value="center" aria-label="Align center" className="h-10 justify-center">
+                      <AlignCenter className="h-5 w-5" />
+                    </ToggleGroupItem>
+                    <ToggleGroupItem value="right" aria-label="Align right" className="h-10 justify-center">
+                      <AlignRight className="h-5 w-5" />
+                    </ToggleGroupItem>
+                    <ToggleGroupItem value="justify" aria-label="Justify" className="h-10 justify-center">
+                      <AlignJustify className="h-5 w-5" />
+                    </ToggleGroupItem>
+                  </ToggleGroup>
+                </div>
+              </div>
+            )}
             <div className="space-y-4 rounded-xl border border-slate-200 p-3 dark:border-slate-800">
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-2">
@@ -274,72 +521,72 @@ export function PropertiesPanel() {
                   type="single"
                   value={styles.paragraphAlign}
                   onValueChange={(value) =>
-                    value && applyStyles({ paragraphAlign: value as typeof styles.paragraphAlign })
+                    value && applyStyles({ paragraphAlign: value as ParagraphAlignment })
                   }
-                  className="mt-2 grid grid-cols-4 gap-2"
+                  className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4"
                 >
-                  <ToggleGroupItem value="left" aria-label="Align left">
-                    <AlignLeft className="h-4 w-4" />
+                  <ToggleGroupItem value="left" aria-label="Align left" className="h-10 justify-center">
+                    <AlignLeft className="h-5 w-5" />
                   </ToggleGroupItem>
-                  <ToggleGroupItem value="center" aria-label="Align center">
-                    <AlignCenter className="h-4 w-4" />
+                  <ToggleGroupItem value="center" aria-label="Align center" className="h-10 justify-center">
+                    <AlignCenter className="h-5 w-5" />
                   </ToggleGroupItem>
-                  <ToggleGroupItem value="right" aria-label="Align right">
-                    <AlignRight className="h-4 w-4" />
+                  <ToggleGroupItem value="right" aria-label="Align right" className="h-10 justify-center">
+                    <AlignRight className="h-5 w-5" />
                   </ToggleGroupItem>
-                  <ToggleGroupItem value="justify" aria-label="Justify">
-                    <AlignJustify className="h-4 w-4" />
+                  <ToggleGroupItem value="justify" aria-label="Justify" className="h-10 justify-center">
+                    <AlignJustify className="h-5 w-5" />
                   </ToggleGroupItem>
                 </ToggleGroup>
               </div>
-              <div>
-                <Label className="text-xs uppercase tracking-wide text-slate-400">Body case</Label>
-                <ToggleGroup
-                  type="single"
+              <div className="space-y-2">
+                <Label htmlFor="bodyCase">Body case</Label>
+                <select
+                  id="bodyCase"
+                  className={selectControlClasses}
                   value={styles.textTransform}
-                  onValueChange={(value) =>
-                    value && applyStyles({ textTransform: value as typeof styles.textTransform })
+                  onChange={(event) =>
+                    applyStyles({ textTransform: event.target.value as TextTransformOption })
                   }
-                  className="mt-2 grid grid-cols-3 gap-2"
                 >
-                  <ToggleGroupItem value="none">Normal</ToggleGroupItem>
-                  <ToggleGroupItem value="capitalize">Title</ToggleGroupItem>
-                  <ToggleGroupItem value="uppercase">Upper</ToggleGroupItem>
-                </ToggleGroup>
+                  <option value="none">Normal</option>
+                  <option value="capitalize">Title Case</option>
+                  <option value="uppercase">Uppercase</option>
+                </select>
               </div>
             </div>
             <div className="grid gap-4 rounded-xl border border-slate-200 p-3 dark:border-slate-800 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label className="text-xs uppercase tracking-wide text-slate-400">Heading weight</Label>
-                <ToggleGroup
-                  type="single"
+                <Label htmlFor="headingWeight">Heading weight</Label>
+                <select
+                  id="headingWeight"
+                  className={selectControlClasses}
                   value={styles.headingWeight}
-                  onValueChange={(value) =>
-                    value && applyStyles({ headingWeight: value as typeof styles.headingWeight })
+                  onChange={(event) =>
+                    applyStyles({ headingWeight: event.target.value as typeof styles.headingWeight })
                   }
-                  className="mt-2 grid grid-cols-5 gap-2"
                 >
-                  <ToggleGroupItem value="400">Regular</ToggleGroupItem>
-                  <ToggleGroupItem value="500">Medium</ToggleGroupItem>
-                  <ToggleGroupItem value="600">Semi-bold</ToggleGroupItem>
-                  <ToggleGroupItem value="700">Bold</ToggleGroupItem>
-                  <ToggleGroupItem value="800">Extra</ToggleGroupItem>
-                </ToggleGroup>
+                  <option value="400">Regular (400)</option>
+                  <option value="500">Medium (500)</option>
+                  <option value="600">Semi Bold (600)</option>
+                  <option value="700">Bold (700)</option>
+                  <option value="800">Extra Bold (800)</option>
+                </select>
               </div>
               <div className="space-y-2">
-                <Label className="text-xs uppercase tracking-wide text-slate-400">Heading case</Label>
-                <ToggleGroup
-                  type="single"
+                <Label htmlFor="headingCase">Heading case</Label>
+                <select
+                  id="headingCase"
+                  className={selectControlClasses}
                   value={styles.headingTransform}
-                  onValueChange={(value) =>
-                    value && applyStyles({ headingTransform: value as typeof styles.headingTransform })
+                  onChange={(event) =>
+                    applyStyles({ headingTransform: event.target.value as TextTransformOption })
                   }
-                  className="mt-2 grid grid-cols-3 gap-2"
                 >
-                  <ToggleGroupItem value="none">Normal</ToggleGroupItem>
-                  <ToggleGroupItem value="capitalize">Title</ToggleGroupItem>
-                  <ToggleGroupItem value="uppercase">Upper</ToggleGroupItem>
-                </ToggleGroup>
+                  <option value="none">Normal</option>
+                  <option value="capitalize">Title Case</option>
+                  <option value="uppercase">Uppercase</option>
+                </select>
               </div>
             </div>
             <div className="space-y-3 rounded-xl border border-slate-200 p-3 dark:border-slate-800">
@@ -412,9 +659,9 @@ export function PropertiesPanel() {
                   }
                   className="mt-2 grid grid-cols-3 gap-2"
                 >
-                  <ToggleGroupItem value="disc">Disc</ToggleGroupItem>
-                  <ToggleGroupItem value="circle">Circle</ToggleGroupItem>
-                  <ToggleGroupItem value="square">Square</ToggleGroupItem>
+                  <ToggleGroupItem value="disc" className="h-10 justify-center">Disc</ToggleGroupItem>
+                  <ToggleGroupItem value="circle" className="h-10 justify-center">Circle</ToggleGroupItem>
+                  <ToggleGroupItem value="square" className="h-10 justify-center">Square</ToggleGroupItem>
                 </ToggleGroup>
               </div>
               <div>
@@ -429,9 +676,9 @@ export function PropertiesPanel() {
                   }
                   className="mt-2 grid grid-cols-3 gap-2"
                 >
-                  <ToggleGroupItem value="decimal">1.</ToggleGroupItem>
-                  <ToggleGroupItem value="lower-alpha">a.</ToggleGroupItem>
-                  <ToggleGroupItem value="upper-roman">I.</ToggleGroupItem>
+                  <ToggleGroupItem value="decimal" className="h-10 justify-center">1.</ToggleGroupItem>
+                  <ToggleGroupItem value="lower-alpha" className="h-10 justify-center">a.</ToggleGroupItem>
+                  <ToggleGroupItem value="upper-roman" className="h-10 justify-center">I.</ToggleGroupItem>
                 </ToggleGroup>
               </div>
             </div>

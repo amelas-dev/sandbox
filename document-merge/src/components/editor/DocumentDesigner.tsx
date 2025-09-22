@@ -21,18 +21,7 @@ import { MergeTag } from '@/editor/merge-tag-node';
 import { getSampleValue } from '@/lib/dataset';
 import type { Editor } from '@tiptap/core';
 import { cn } from '@/lib/utils';
-
-/**
- * Canonical page dimensions (in pixels) for supported paper sizes.
- */
-const PAGE_DIMENSIONS: Record<'Letter' | 'A4', { width: number; height: number }> = {
-  Letter: { width: 816, height: 1056 },
-  A4: { width: 794, height: 1123 },
-};
-
-function ptsToPx(value: number) {
-  return (value / 72) * 96;
-}
+import { getDocumentBaseStyles, getPageDimensions, getPagePadding } from '@/lib/template-style';
 
 export interface DocumentDesignerProps {
   className?: string;
@@ -126,67 +115,15 @@ export function DocumentDesigner({ className, onEditorReady }: DocumentDesignerP
     }
   }, [editor, template]);
 
+  const pageDimensions = React.useMemo(() => getPageDimensions(template.page), [template.page]);
+  const padding = React.useMemo(() => getPagePadding(template.page.margins), [template.page.margins]);
+  const baseStyles = React.useMemo<React.CSSProperties>(
+    () => getDocumentBaseStyles(template),
+    [template],
+  );
   const page = template.page;
-  const dimensions = PAGE_DIMENSIONS[page.size];
-  const pageWidth = page.orientation === 'portrait' ? dimensions.width : dimensions.height;
-  const pageHeight = page.orientation === 'portrait' ? dimensions.height : dimensions.width;
-  const padding = {
-    paddingTop: ptsToPx(page.margins.top),
-    paddingRight: ptsToPx(page.margins.right),
-    paddingBottom: ptsToPx(page.margins.bottom),
-    paddingLeft: ptsToPx(page.margins.left),
-  } as React.CSSProperties;
+  const { width: pageWidth, height: pageHeight } = pageDimensions;
 
-  const resolvedTextColor = React.useMemo(() => {
-    if (template.styles.theme === 'dark' && template.styles.textColor === '#0f172a') {
-      return '#e2e8f0';
-    }
-    return template.styles.textColor;
-  }, [template.styles.textColor, template.styles.theme]);
-
-  const resolvedHeadingColor = React.useMemo(() => {
-    if (template.styles.theme === 'dark' && template.styles.headingColor === '#111827') {
-      return '#f8fafc';
-    }
-    return template.styles.headingColor;
-  }, [template.styles.headingColor, template.styles.theme]);
-
-  const baseStyles = React.useMemo<React.CSSProperties>(() => ({
-    fontFamily: template.styles.fontFamily,
-    fontSize: `${template.styles.baseFontSize}px`,
-    lineHeight: template.styles.lineHeight,
-    letterSpacing: `${template.styles.letterSpacing}px`,
-    textTransform: template.styles.textTransform,
-    textAlign: template.styles.paragraphAlign,
-    color: resolvedTextColor,
-    '--dm-body-color': resolvedTextColor,
-    '--dm-heading-font-family': template.styles.headingFontFamily,
-    '--dm-heading-weight': template.styles.headingWeight,
-    '--dm-heading-color': resolvedHeadingColor,
-    '--dm-heading-transform': template.styles.headingTransform,
-    '--dm-paragraph-spacing': `${template.styles.paragraphSpacing}px`,
-    '--dm-link-color': template.styles.linkColor,
-    '--dm-highlight-color': template.styles.highlightColor,
-    '--dm-bullet-style': template.styles.bulletStyle,
-    '--dm-number-style': template.styles.numberedStyle,
-  }), [
-    resolvedHeadingColor,
-    resolvedTextColor,
-    template.styles.baseFontSize,
-    template.styles.bulletStyle,
-    template.styles.fontFamily,
-    template.styles.headingFontFamily,
-    template.styles.headingTransform,
-    template.styles.headingWeight,
-    template.styles.highlightColor,
-    template.styles.letterSpacing,
-    template.styles.linkColor,
-    template.styles.lineHeight,
-    template.styles.numberedStyle,
-    template.styles.paragraphAlign,
-    template.styles.paragraphSpacing,
-    template.styles.textTransform,
-  ]);
 
   return (
     <div
