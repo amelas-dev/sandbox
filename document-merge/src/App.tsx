@@ -130,7 +130,7 @@ export default function App() {
   }, [template.styles.theme]);
 
   React.useEffect(() => {
-    const defaultFont = "'Roboto', sans-serif";
+    const defaultFont = "'Roboto', system-ui, sans-serif";
     document.body.style.fontFamily = defaultFont;
     ensureGoogleFontsLoaded(['Roboto']);
     return () => {
