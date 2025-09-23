@@ -71,3 +71,85 @@ body {
 [data-document-typography] li:last-child {
   margin-block-end: 0;
 }
+
+[data-document-typography] table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-block: var(--dm-paragraph-spacing);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background-color: var(--dm-table-surface, #ffffff);
+  --dm-table-border-color: #e2e8f0;
+  --dm-table-border-width: 1px;
+  --dm-table-border-style: solid;
+  --dm-table-stripe-color: rgba(148, 163, 184, 0.12);
+  border: var(--dm-table-border-width) var(--dm-table-border-style) var(--dm-table-border-color);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+
+[data-document-typography] table caption {
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: var(--dm-heading-color);
+}
+
+[data-document-typography] table td,
+[data-document-typography] table th {
+  border: var(--dm-table-border-width) var(--dm-table-border-style) var(--dm-table-border-color);
+  padding: 0.65rem 0.85rem;
+  text-align: left;
+  font-size: inherit;
+  line-height: inherit;
+  vertical-align: top;
+  background-clip: padding-box;
+}
+
+[data-document-typography] table th {
+  font-weight: 600;
+  color: var(--dm-heading-color);
+  background-color: rgba(15, 23, 42, 0.05);
+}
+
+[data-document-typography] table[data-table-style='rows'] td,
+[data-document-typography] table[data-table-style='rows'] th {
+  border-inline: 0;
+  border-top: 0;
+  border-bottom: var(--dm-table-border-width) var(--dm-table-border-style) var(--dm-table-border-color);
+}
+
+[data-document-typography] table[data-table-style='rows'] tr:last-child > * {
+  border-bottom: 0;
+}
+
+[data-document-typography] table[data-table-style='outline'] td,
+[data-document-typography] table[data-table-style='outline'] th {
+  border: 0;
+}
+
+[data-document-typography] table[data-table-style='outline'] {
+  border: calc(var(--dm-table-border-width) + 0px) var(--dm-table-border-style) var(--dm-table-border-color);
+}
+
+[data-document-typography] table[data-table-stripe='rows'] tr:nth-child(n + 2):nth-child(even) > *:not([data-cell-background]) {
+  background-color: var(--dm-table-stripe-color);
+}
+
+.ProseMirror .tableWrapper {
+  margin-block: var(--dm-paragraph-spacing);
+  overflow-x: auto;
+}
+
+.ProseMirror .tableWrapper table {
+  width: 100%;
+  margin: 0;
+}
+
+.ProseMirror .column-resize-handle {
+  position: absolute;
+  right: -3px;
+  top: 0;
+  bottom: -2px;
+  width: 6px;
+  background-color: rgba(99, 102, 241, 0.35);
+  pointer-events: none;
+}

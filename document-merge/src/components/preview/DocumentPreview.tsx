@@ -8,10 +8,12 @@ import Link from '@tiptap/extension-link';
 import Underline from '@tiptap/extension-underline';
 import Highlight from '@tiptap/extension-highlight';
 import Image from '@tiptap/extension-image';
-import Table from '@tiptap/extension-table';
-import TableRow from '@tiptap/extension-table-row';
-import TableCell from '@tiptap/extension-table-cell';
-import TableHeader from '@tiptap/extension-table-header';
+import {
+  PremiumTable,
+  PremiumTableCell,
+  PremiumTableHeader,
+  PremiumTableRow,
+} from '@/editor/extensions/premium-table';
 import TextAlign from '@tiptap/extension-text-align';
 import Color from '@tiptap/extension-color';
 import TextStyle from '@tiptap/extension-text-style';
@@ -75,7 +77,7 @@ export function DocumentPreview({ className }: DocumentPreviewProps) {
         }
       }
     }
-    return label ? `Record ${current} of ${total} • ${label}` : `Record ${current} of ${total}`;
+    return label ? `Record ${current} of ${total} â€¢ ${label}` : `Record ${current} of ${total}`;
   }, [dataset, previewIndex, previewRow]);
 
   const html = React.useMemo(() => {
@@ -105,10 +107,10 @@ export function DocumentPreview({ className }: DocumentPreviewProps) {
       Underline,
       Highlight,
       Image.configure({ allowBase64: true }),
-      Table.configure({ resizable: true }),
-      TableRow,
-      TableCell,
-      TableHeader,
+      PremiumTable.configure({ resizable: true }),
+      PremiumTableRow,
+      PremiumTableCell,
+      PremiumTableHeader,
       ListStyleBullet,
       ListStyleOrdered,
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
