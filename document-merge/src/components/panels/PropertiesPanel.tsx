@@ -24,7 +24,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAppStore } from '@/store/useAppStore';
-import type { BulletStyle, NumberedStyle, ParagraphAlignment, TextTransformOption } from '@/lib/types';
+import type {
+  BulletStyle,
+  NumberedStyle,
+  ParagraphAlignment,
+  TemplateTypography,
+  TextTransformOption,
+} from '@/lib/types';
 import { GOOGLE_FONT_FAMILIES, GOOGLE_FONT_PRESETS, FONT_PRESET_STACKS } from '@/lib/font-presets';
 import { ensureGoogleFontsLoaded } from '@/lib/google-font-loader';
 import { cn } from '@/lib/utils';
@@ -201,7 +207,7 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
   const updatePreferences = useAppStore((state) => state.updatePreferences);
 
   const applyStyles = React.useCallback(
-    (next: Partial<typeof styles>) => {
+    (next: Partial<TemplateTypography>) => {
       updateTemplate({ styles: next });
     },
     [updateTemplate],

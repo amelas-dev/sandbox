@@ -29,6 +29,8 @@ export function GenerateDocumentsDialog({ open, onOpenChange }: GenerateDocument
   const updateGenerationOptions = useAppStore((state) => state.updateGenerationOptions);
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [status, setStatus] = React.useState<string>('');
+  const filterValue = generationOptions.filter?.value;
+  const filterValueInput = filterValue == null ? '' : String(filterValue);
 
   const handleGenerate = async () => {
     if (!dataset) {
@@ -139,7 +141,7 @@ export function GenerateDocumentsDialog({ open, onOpenChange }: GenerateDocument
                 <div>
                   <Label>Value</Label>
                   <Input
-                    value={generationOptions.filter?.value ?? ''}
+                    value={filterValueInput}
                     onChange={(event) =>
                       updateGenerationOptions({
                         filter: {

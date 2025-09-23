@@ -104,7 +104,6 @@ export function filterRows(dataset: Dataset, options: GenerationOptions): number
 export async function expandTemplateToHtml(
   template: TemplateDoc,
   record: Record<string, unknown>,
-  dataset: Dataset,
 ): Promise<string> {
   const [{ generateHTML }, StarterKitModule, TextAlignModule, UnderlineModule, LinkModule, ImageModule, TableModule, TableRowModule, TableHeaderModule, TableCellModule, ColorModule, TextStyleModule, HighlightModule, MergeTagModule] = await Promise.all([
     import('@tiptap/react'),
@@ -136,7 +135,7 @@ export async function expandTemplateToHtml(
     ColorModule.default,
     TextStyleModule.default,
     HighlightModule.default,
-    MergeTagModule.MergeTag.configure({ dataset, record }),
+    MergeTagModule.MergeTag,
   ]);
   return substituteMergeTags(html, record);
 }
@@ -156,7 +155,7 @@ export async function buildGenerationArtifacts(
   for (const index of indexes) {
     const row = dataset.rows[index];
     const filename = renderFilename(options.filenamePattern, row, `document_${index + 1}`);
-    const html = await expandTemplateToHtml(template, row, dataset);
+    const html = await expandTemplateToHtml(template, row);
     artifacts.push({ filename, html });
   }
   return artifacts;

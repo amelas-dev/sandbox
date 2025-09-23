@@ -139,7 +139,7 @@ function sanitizeCellValue(
     return '';
   }
   if (typeof value === 'string') {
-    const normalized = value.replaceAll(String.fromCharCode(0), '').trimEnd();
+    const normalized = value.split(String.fromCharCode(0)).join('').trimEnd();
     if (normalized.length > limits.maxCellLength) {
       issues.push({
         row,

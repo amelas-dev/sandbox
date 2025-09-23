@@ -62,7 +62,7 @@ export function DocumentDesigner({ className, onEditorReady }: DocumentDesignerP
   const editor = useEditor(
     {
       extensions: [
-        StarterKit.configure({ history: true, bulletList: false, orderedList: false, textStyle: false }),
+        StarterKit.configure({ history: {}, bulletList: false, orderedList: false }),
         Placeholder.configure({ placeholder: 'Compose your investor-ready narrative…' }),
         Link.configure({ openOnClick: false, autolink: true }),
         Underline,
@@ -129,10 +129,7 @@ export function DocumentDesigner({ className, onEditorReady }: DocumentDesignerP
 
   const pageDimensions = React.useMemo(() => getPageDimensions(template.page), [template.page]);
   const padding = React.useMemo(() => getPagePadding(template.page.margins), [template.page.margins]);
-  const baseStyles = React.useMemo<React.CSSProperties>(
-    () => getDocumentBaseStyles(template),
-    [template],
-  );
+  const baseStyles = React.useMemo(() => getDocumentBaseStyles(template), [template]);
   const page = template.page;
   const { width: pageWidth, height: pageHeight } = pageDimensions;
 
