@@ -113,6 +113,76 @@ const renderSliderSection = (title: string, valueLabel: string, slider: React.Re
   </div>
 );
 
+interface FontFamilyDropdownProps {
+  triggerLabel: string;
+  triggerActive?: boolean;
+  triggerDisabled?: boolean;
+  icon?: React.ReactNode;
+  menuLabel: string;
+  defaultOptionLabel?: string;
+  customValue: string;
+  onSelectValue: (value: string) => void;
+  onCustomChange: (value: string) => void;
+  inputDisabled?: boolean;
+}
+
+function FontFamilyDropdown({
+  triggerLabel,
+  triggerActive,
+  triggerDisabled,
+  icon = <Type className='h-4 w-4' />,
+  menuLabel,
+  defaultOptionLabel,
+  customValue,
+  onSelectValue,
+  onCustomChange,
+  inputDisabled,
+}: FontFamilyDropdownProps) {
+  const disabled = triggerDisabled ?? false;
+  const customDisabled = inputDisabled ?? disabled;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        {renderToolbarTrigger({ icon, label: triggerLabel, active: triggerActive, disabled })}
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className='w-64 space-y-2 p-2'>
+        <DropdownMenuLabel>{menuLabel}</DropdownMenuLabel>
+        {defaultOptionLabel ? (
+          <>
+            <DropdownMenuItem onSelect={() => onSelectValue('')}>{defaultOptionLabel}</DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
+        ) : null}
+        <div className='max-h-48 overflow-y-auto'>
+          {GOOGLE_FONT_PRESETS.map((font) => (
+            <DropdownMenuItem
+              key={font.stack}
+              onSelect={() => onSelectValue(font.stack)}
+              className='flex items-center gap-2'
+              style={{ fontFamily: font.stack }}
+            >
+              {font.label}
+            </DropdownMenuItem>
+          ))}
+        </div>
+        <DropdownMenuSeparator />
+        <div className='space-y-1'>
+          <span className='text-xs font-medium text-slate-500 dark:text-slate-400'>Custom stack</span>
+          <Input
+            value={customValue}
+            onChange={(event) => onCustomChange(event.target.value)}
+            placeholder='Enter custom font stack'
+            disabled={customDisabled}
+            onClick={(event) => event.stopPropagation()}
+            onKeyDown={(event) => event.stopPropagation()}
+          />
+        </div>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 
 /**
  * Controls for page layout, visual styling, and persistence preferences. This
@@ -314,10 +384,11 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
   const templateLetterSpacingLabel = `${styles.letterSpacing.toFixed(1)}px`;
   const paragraphSpacingLabel = `${styles.paragraphSpacing}px`;
 
-  const handleBodyFontPresetSelect = React.useCallback(
+  const handleBodyFontFamilyChange = React.useCallback(
     (value: string) => {
-      applyStyles({ fontFamily: value });
-      const primary = extractPrimaryFamily(value);
+      const next = value.trim();
+      applyStyles({ fontFamily: next });
+      const primary = extractPrimaryFamily(next);
       if (primary) {
         ensureGoogleFontsLoaded([primary]);
       }
@@ -325,10 +396,11 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
     [applyStyles],
   );
 
-  const handleHeadingFontPresetSelect = React.useCallback(
+  const handleHeadingFontFamilyChange = React.useCallback(
     (value: string) => {
-      applyStyles({ headingFontFamily: value });
-      const primary = extractPrimaryFamily(value);
+      const next = value.trim();
+      applyStyles({ headingFontFamily: next });
+      const primary = extractPrimaryFamily(next);
       if (primary) {
         ensureGoogleFontsLoaded([primary]);
       }
@@ -362,49 +434,19 @@ const numberedStyleLabel = styles.numberedStyle === 'decimal'
     ? 'a.'
     : 'I.';
 
-const selectionFontDropdown = selectionControlsDisabled ? null : (
-  <DropdownMenu>
-    <DropdownMenuTrigger asChild>
-      {renderToolbarTrigger({
-        icon: <Type className='h-4 w-4' />,
-        label: selectionFontPresetLabel,
-        active: selectionFontButtonActive,
-        disabled: selectionControlsDisabled,
-      })}
-    </DropdownMenuTrigger>
-    <DropdownMenuContent className='w-64 space-y-2 p-2'>
-      <DropdownMenuLabel>Font family</DropdownMenuLabel>
-      <DropdownMenuItem onSelect={() => handleSelectionFontFamilyChange('')}>
-        Document default ({bodyFontLabel})
-      </DropdownMenuItem>
-      <DropdownMenuSeparator />
-      <div className='max-h-48 overflow-y-auto'>
-        {GOOGLE_FONT_PRESETS.map((font) => (
-          <DropdownMenuItem
-            key={font.stack}
-            onSelect={() => handleSelectionFontFamilyChange(font.stack)}
-            className='flex items-center gap-2'
-            style={{ fontFamily: font.stack }}
-          >
-            {font.label}
-          </DropdownMenuItem>
-        ))}
-      </div>
-      <DropdownMenuSeparator />
-      <div className='space-y-1'>
-        <span className='text-xs font-medium text-slate-500 dark:text-slate-400'>Custom stack</span>
-        <Input
-          value={selectionFontFamily}
-          placeholder='Enter custom font stack'
-          disabled={selectionControlsDisabled}
-          onChange={(event) => handleSelectionFontFamilyChange(event.target.value)}
-          onClick={(event) => event.stopPropagation()}
-          onKeyDown={(event) => event.stopPropagation()}
-        />
-      </div>
-    </DropdownMenuContent>
-  </DropdownMenu>
-);
+const selectionFontDropdown = selectionControlsDisabled
+  ? null
+  : (
+      <FontFamilyDropdown
+        triggerLabel={selectionFontPresetLabel}
+        triggerActive={selectionFontButtonActive}
+        menuLabel='Font family'
+        defaultOptionLabel={`Document default (${bodyFontLabel})`}
+        customValue={selectionFontFamily}
+        onSelectValue={handleSelectionFontFamilyChange}
+        onCustomChange={handleSelectionFontFamilyChange}
+      />
+    );
 
 const selectionSizeDropdown = selectionControlsDisabled ? null : (
   <DropdownMenu>
@@ -511,79 +553,25 @@ const selectionAlignmentGroup = selectionControlsDisabled ? null : (
 );
 
 const documentBodyFontDropdown = (
-  <DropdownMenu>
-    <DropdownMenuTrigger asChild>
-      {renderToolbarTrigger({
-        icon: <Type className='h-4 w-4' />,
-        label: bodyFontLabel,
-        active: !FONT_PRESET_STACKS.has(styles.fontFamily),
-      })}
-    </DropdownMenuTrigger>
-    <DropdownMenuContent className='w-64 space-y-2 p-2'>
-      <DropdownMenuLabel>Body font</DropdownMenuLabel>
-      <div className='max-h-48 overflow-y-auto'>
-        {GOOGLE_FONT_PRESETS.map((font) => (
-          <DropdownMenuItem
-            key={font.stack}
-            onSelect={() => handleBodyFontPresetSelect(font.stack)}
-            className='flex items-center gap-2'
-            style={{ fontFamily: font.stack }}
-          >
-            {font.label}
-          </DropdownMenuItem>
-        ))}
-      </div>
-      <DropdownMenuSeparator />
-      <div className='space-y-1'>
-        <span className='text-xs font-medium text-slate-500 dark:text-slate-400'>Custom stack</span>
-        <Input
-          value={styles.fontFamily}
-          onChange={(event) => applyStyles({ fontFamily: event.target.value })}
-          placeholder='Enter custom font stack'
-          onClick={(event) => event.stopPropagation()}
-          onKeyDown={(event) => event.stopPropagation()}
-        />
-      </div>
-    </DropdownMenuContent>
-  </DropdownMenu>
+  <FontFamilyDropdown
+    triggerLabel={bodyFontLabel}
+    triggerActive={!FONT_PRESET_STACKS.has(styles.fontFamily)}
+    menuLabel='Body font'
+    customValue={styles.fontFamily}
+    onSelectValue={handleBodyFontFamilyChange}
+    onCustomChange={handleBodyFontFamilyChange}
+  />
 );
 
 const documentHeadingFontDropdown = (
-  <DropdownMenu>
-    <DropdownMenuTrigger asChild>
-      {renderToolbarTrigger({
-        icon: <Type className='h-4 w-4' />,
-        label: headingFontLabel,
-        active: !FONT_PRESET_STACKS.has(styles.headingFontFamily),
-      })}
-    </DropdownMenuTrigger>
-    <DropdownMenuContent className='w-64 space-y-2 p-2'>
-      <DropdownMenuLabel>Heading font</DropdownMenuLabel>
-      <div className='max-h-48 overflow-y-auto'>
-        {GOOGLE_FONT_PRESETS.map((font) => (
-          <DropdownMenuItem
-            key={font.stack}
-            onSelect={() => handleHeadingFontPresetSelect(font.stack)}
-            className='flex items-center gap-2'
-            style={{ fontFamily: font.stack }}
-          >
-            {font.label}
-          </DropdownMenuItem>
-        ))}
-      </div>
-      <DropdownMenuSeparator />
-      <div className='space-y-1'>
-        <span className='text-xs font-medium text-slate-500 dark:text-slate-400'>Custom stack</span>
-        <Input
-          value={styles.headingFontFamily}
-          onChange={(event) => applyStyles({ headingFontFamily: event.target.value })}
-          placeholder='Enter custom font stack'
-          onClick={(event) => event.stopPropagation()}
-          onKeyDown={(event) => event.stopPropagation()}
-        />
-      </div>
-    </DropdownMenuContent>
-  </DropdownMenu>
+  <FontFamilyDropdown
+    triggerLabel={headingFontLabel}
+    triggerActive={!FONT_PRESET_STACKS.has(styles.headingFontFamily)}
+    menuLabel='Heading font'
+    customValue={styles.headingFontFamily}
+    onSelectValue={handleHeadingFontFamilyChange}
+    onCustomChange={handleHeadingFontFamilyChange}
+  />
 );
 
 const documentFontSizeDropdown = (

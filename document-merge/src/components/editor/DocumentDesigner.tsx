@@ -12,13 +12,13 @@ import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
 import TextAlign from '@tiptap/extension-text-align';
 import Color from '@tiptap/extension-color';
-import TextStyle from '@tiptap/extension-text-style';
 import CharacterCount from '@tiptap/extension-character-count';
 import Dropcursor from '@tiptap/extension-dropcursor';
 import Gapcursor from '@tiptap/extension-gapcursor';
 import { useAppStore, selectDataset, selectTemplate } from '@/store/useAppStore';
 import { MergeTag } from '@/editor/merge-tag-node';
 import { ListStyleBullet, ListStyleOrdered } from '@/editor/extensions/list-style';
+import { ExtendedTextStyle } from '@/editor/extensions/text-style';
 import { getSampleValue } from '@/lib/dataset';
 import type { Editor } from '@tiptap/core';
 import { cn } from '@/lib/utils';
@@ -62,7 +62,7 @@ export function DocumentDesigner({ className, onEditorReady }: DocumentDesignerP
   const editor = useEditor(
     {
       extensions: [
-        StarterKit.configure({ history: true, bulletList: false, orderedList: false }),
+        StarterKit.configure({ history: true, bulletList: false, orderedList: false, textStyle: false }),
         Placeholder.configure({ placeholder: 'Compose your investor-ready narrative…' }),
         Link.configure({ openOnClick: false, autolink: true }),
         Underline,
@@ -76,7 +76,7 @@ export function DocumentDesigner({ className, onEditorReady }: DocumentDesignerP
         ListStyleOrdered.configure({ keepMarks: true, keepAttributes: true }),
         TextAlign.configure({ types: ['heading', 'paragraph'] }),
         Color,
-        TextStyle,
+        ExtendedTextStyle,
         Dropcursor,
         Gapcursor,
         CharacterCount.configure(),
