@@ -24,6 +24,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAppStore } from '@/store/useAppStore';
+import { TableControls } from './TableControls';
 import type {
   BulletStyle,
   NumberedStyle,
@@ -1146,6 +1147,7 @@ const documentToolbar = (
           <TabsContent value="document" className="space-y-5 pr-1">
             {selectionToolbar}
             {selectionPalette}
+            <TableControls editor={editor} />
             {documentToolbar}
           </TabsContent>
         </div>
