@@ -7,6 +7,7 @@ import type {
   PersistedState,
   TemplateDoc,
   CanvasMode,
+  TemplateUpdate,
 } from '@/lib/types';
 
 /**
@@ -160,7 +161,7 @@ interface AppState {
   generationOptions: GenerationOptions;
   setDataset: (result: DatasetImportResult) => void;
   clearDataset: () => void;
-  updateTemplate: (update: Partial<TemplateDoc>) => void;
+  updateTemplate: (update: TemplateUpdate) => void;
   setTemplateContent: (content: TemplateDoc['content']) => void;
   setPreviewIndex: (index: number) => void;
   setCanvasMode: (mode: CanvasMode) => void;

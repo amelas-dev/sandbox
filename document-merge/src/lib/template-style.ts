@@ -1,6 +1,21 @@
 import type { CSSProperties } from 'react';
 import type { TemplateDoc } from '@/lib/types';
 
+type DocumentStyleProperties = CSSProperties &
+  Record<
+    | '--dm-body-color'
+    | '--dm-heading-font-family'
+    | '--dm-heading-weight'
+    | '--dm-heading-color'
+    | '--dm-heading-transform'
+    | '--dm-paragraph-spacing'
+    | '--dm-link-color'
+    | '--dm-highlight-color'
+    | '--dm-bullet-style'
+    | '--dm-number-style',
+    string
+  >;
+
 const PAGE_DIMENSIONS: Record<'Letter' | 'A4', { width: number; height: number }> = {
   Letter: { width: 816, height: 1056 },
   A4: { width: 794, height: 1123 },
@@ -44,7 +59,7 @@ function resolveHeadingColor(styles: TemplateDoc['styles']): string {
   return styles.headingColor;
 }
 
-export function getDocumentBaseStyles(template: TemplateDoc): CSSProperties {
+export function getDocumentBaseStyles(template: TemplateDoc): DocumentStyleProperties {
   const textColor = resolveBodyColor(template.styles);
   const headingColor = resolveHeadingColor(template.styles);
 
@@ -66,5 +81,5 @@ export function getDocumentBaseStyles(template: TemplateDoc): CSSProperties {
     '--dm-highlight-color': template.styles.highlightColor,
     '--dm-bullet-style': template.styles.bulletStyle,
     '--dm-number-style': template.styles.numberedStyle,
-  } satisfies CSSProperties;
+  } satisfies DocumentStyleProperties;
 }

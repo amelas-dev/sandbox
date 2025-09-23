@@ -29,6 +29,7 @@ export type TextTransformOption = 'none' | 'uppercase' | 'capitalize';
 export type HeadingWeight = '400' | '500' | '600' | '700' | '800';
 export type BulletStyle = 'disc' | 'circle' | 'square';
 export type NumberedStyle = 'decimal' | 'lower-alpha' | 'upper-roman';
+export type CanvasMode = 'edit' | 'preview';
 
 export interface TemplateTypography {
   fontFamily: string;
@@ -59,6 +60,9 @@ export interface TemplateDoc {
   };
   styles: TemplateTypography;
 }
+
+export type TemplateUpdate =
+  Partial<Omit<TemplateDoc, 'styles'>> & { styles?: Partial<TemplateTypography> };
 
 export interface GenerationFilter {
   field: string;
