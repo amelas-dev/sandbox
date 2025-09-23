@@ -85,7 +85,23 @@ function fontLabelFromStack(stack: string): string {
   return preset ? preset.label : 'Custom';
 }
 
-const toolbarButtonClass = 'inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium shadow-sm transition hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800';
+const toolbarButtonClass =
+  'inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium shadow-sm transition hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed dark:border-slate-700 dark:bg-slate-900 dark:hover:bg-slate-800';
+
+const UNIVERSAL_PALETTE = [
+  '#0f172a',
+  '#1e293b',
+  '#2563eb',
+  '#7c3aed',
+  '#0ea5e9',
+  '#10b981',
+  '#f59e0b',
+  '#f97316',
+  '#ef4444',
+  '#f472b6',
+  '#facc15',
+  '#fef08a',
+];
 
 interface ToolbarTriggerOptions {
   icon: React.ReactNode;
@@ -205,6 +221,7 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
   const toggleGrid = useAppStore((state) => state.toggleGrid);
   const autosaveEnabled = useAppStore((state) => state.preferences.autosave);
   const updatePreferences = useAppStore((state) => state.updatePreferences);
+  const [paletteMode, setPaletteMode] = React.useState<'text' | 'highlight'>('text');
 
   const applyStyles = React.useCallback(
     (next: Partial<TemplateTypography>) => {
@@ -235,16 +252,35 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
   const textStyleAttributes = (editor?.getAttributes('textStyle') ?? {}) as Record<string, unknown>;
   const selectionActive = Boolean(editor?.state.selection && !editor.state.selection.empty);
   const selectionFontFamily =
-    typeof textStyleAttributes.fontFamily === 'string' ? (textStyleAttributes.fontFamily as string) : '';
-  const selectionFontSize = parsePxValue(textStyleAttributes.fontSize) ?? styles.baseFontSize;
+    selectionActive && typeof textStyleAttributes.fontFamily === 'string'
+      ? (textStyleAttributes.fontFamily as string)
+      : '';
+  const selectionFontSize = selectionActive
+    ? parsePxValue(textStyleAttributes.fontSize) ?? styles.baseFontSize
+    : styles.baseFontSize;
   const selectionLetterSpacingValue = (() => {
+    if (!selectionActive) {
+      return styles.letterSpacing;
+    }
     const raw = textStyleAttributes.letterSpacing;
     return parseNumber(raw) ?? parsePxValue(raw) ?? styles.letterSpacing;
   })();
   const selectionTextTransformValue =
-    typeof textStyleAttributes.textTransform === 'string'
+    selectionActive && typeof textStyleAttributes.textTransform === 'string'
       ? (textStyleAttributes.textTransform as string)
       : '';
+  const selectionColorValue =
+    selectionActive && typeof textStyleAttributes.color === 'string'
+      ? (textStyleAttributes.color as string)
+      : '';
+  const selectionHighlightAttributes = selectionActive && editor
+    ? (editor.getAttributes('highlight') as Record<string, unknown>)
+    : ({} as Record<string, unknown>);
+  const selectionHighlightValue =
+    selectionActive && selectionHighlightAttributes && typeof selectionHighlightAttributes.color === 'string'
+      ? (selectionHighlightAttributes.color as string)
+      : '';
+  const selectionHighlightActive = selectionActive && !!editor && editor.isActive('highlight');
 
   const selectionLetterSpacingDisplay = Number(selectionLetterSpacingValue.toFixed(1));
 
@@ -253,8 +289,21 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
     Boolean(selectionFontFamily) ||
     selectionTextTransformValue !== '' ||
     selectionFontSize !== styles.baseFontSize ||
-    selectionLetterSpacingDisplay !== defaultLetterSpacingDisplay;
-  const selectionControlsDisabled = !editor;
+    selectionLetterSpacingDisplay !== defaultLetterSpacingDisplay ||
+    Boolean(selectionColorValue) ||
+    selectionHighlightActive;
+  const selectionControlsDisabled = !editor || !selectionActive;
+  const normalizedSelectionColor = selectionColorValue.toLowerCase();
+  const normalizedSelectionHighlightColor = (
+    selectionHighlightValue || (selectionHighlightActive ? styles.highlightColor : '')
+  ).toLowerCase();
+  const paletteHasActiveValue =
+    paletteMode === 'highlight' ? selectionHighlightActive : Boolean(selectionColorValue);
+  const selectionStatusMessage = !editor
+    ? 'Switch to edit mode to format document content.'
+    : !selectionActive
+      ? 'Select text to format. Only highlighted text will change.'
+      : 'Formatting applies to the highlighted text.';
   const selectionFontPresetValue = selectionFontFamily
     ? FONT_PRESET_STACKS.has(selectionFontFamily)
       ? selectionFontFamily
@@ -328,11 +377,38 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
     [editor],
   );
 
+  const handleUniversalPaletteSelect = React.useCallback(
+    (color: string) => {
+      if (!editor || !selectionActive) {
+        return;
+      }
+      const chain = editor.chain().focus();
+      if (paletteMode === 'highlight') {
+        chain.setHighlight({ color }).run();
+        return;
+      }
+      chain.setColor(color).run();
+    },
+    [editor, paletteMode, selectionActive],
+  );
+
+  const handleUniversalPaletteClear = React.useCallback(() => {
+    if (!editor || !selectionActive) {
+      return;
+    }
+    const chain = editor.chain().focus();
+    if (paletteMode === 'highlight') {
+      chain.unsetHighlight().run();
+      return;
+    }
+    chain.unsetColor().run();
+  }, [editor, paletteMode, selectionActive]);
+
   const clearSelectionOverrides = React.useCallback(() => {
     if (!editor) {
       return;
     }
-    editor.chain().focus().unsetMark('textStyle').run();
+    editor.chain().focus().unsetHighlight().unsetMark('textStyle').run();
   }, [editor]);
 
   const selectionFontPresetLabel =
@@ -842,13 +918,64 @@ const selectionToolbar = (
         Reset
       </Button>
     </div>
-    <p className='text-xs text-slate-500 dark:text-slate-400'>
-      {selectionControlsDisabled
-        ? 'Switch to edit mode to format document content.'
-        : selectionActive
-          ? 'Formatting applies to the highlighted text.'
-          : 'Formatting applies to the next text you type.'}
-    </p>
+    <p className='text-xs text-slate-500 dark:text-slate-400'>{selectionStatusMessage}</p>
+  </div>
+);
+
+const selectionPalette = (
+  <div className='space-y-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900'>
+    <div className='flex flex-wrap items-center justify-between gap-2'>
+      <span className='text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500'>
+        Universal palette
+      </span>
+      <ToggleGroup
+        type='single'
+        value={paletteMode}
+        onValueChange={(value) => {
+          if (value === 'text' || value === 'highlight') {
+            setPaletteMode(value);
+          }
+        }}
+        aria-label='Palette target'
+        className='text-xs'
+      >
+        <ToggleGroupItem value='text'>Text</ToggleGroupItem>
+        <ToggleGroupItem value='highlight'>Highlight</ToggleGroupItem>
+      </ToggleGroup>
+    </div>
+    <div className='flex flex-wrap items-center gap-2'>
+      {UNIVERSAL_PALETTE.map((color) => {
+        const normalizedColor = color.toLowerCase();
+        const isActive =
+          paletteMode === 'highlight'
+            ? normalizedSelectionHighlightColor === normalizedColor
+            : normalizedSelectionColor === normalizedColor;
+        return (
+          <button
+            key={color}
+            type='button'
+            onClick={() => handleUniversalPaletteSelect(color)}
+            disabled={selectionControlsDisabled}
+            className={cn(
+              'h-8 w-8 rounded-full border border-slate-200 p-0 shadow-sm transition focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700',
+              isActive ? 'ring-2 ring-brand-500 ring-offset-2' : 'hover:ring-2 hover:ring-slate-300 hover:ring-offset-2',
+            )}
+            style={{ backgroundColor: color }}
+          >
+            <span className='sr-only'>Apply {paletteMode} color {color}</span>
+          </button>
+        );
+      })}
+      <Button
+        variant='ghost'
+        size='sm'
+        onClick={handleUniversalPaletteClear}
+        disabled={selectionControlsDisabled || !paletteHasActiveValue}
+        className='text-xs'
+      >
+        Clear
+      </Button>
+    </div>
   </div>
 );
 
@@ -1018,64 +1145,8 @@ const documentToolbar = (
           </TabsContent>
           <TabsContent value="document" className="space-y-5 pr-1">
             {selectionToolbar}
+            {selectionPalette}
             {documentToolbar}
-            <div className="space-y-3 rounded-xl border border-slate-200 p-3 dark:border-slate-800">
-              <Label className="text-xs uppercase tracking-wide text-slate-400">Palette</Label>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-700">
-                  <span className="text-sm text-slate-600 dark:text-slate-300">Body text</span>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="color"
-                      value={styles.textColor}
-                      onChange={(event) => applyStyles({ textColor: event.target.value })}
-                      className="h-8 w-8 cursor-pointer rounded border border-slate-200 bg-transparent p-0 dark:border-slate-600"
-                      aria-label="Body text color"
-                    />
-                    <span className="text-xs text-slate-500">{styles.textColor}</span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-700">
-                  <span className="text-sm text-slate-600 dark:text-slate-300">Headings</span>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="color"
-                      value={styles.headingColor}
-                      onChange={(event) => applyStyles({ headingColor: event.target.value })}
-                      className="h-8 w-8 cursor-pointer rounded border border-slate-200 bg-transparent p-0 dark:border-slate-600"
-                      aria-label="Heading color"
-                    />
-                    <span className="text-xs text-slate-500">{styles.headingColor}</span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-700">
-                  <span className="text-sm text-slate-600 dark:text-slate-300">Links</span>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="color"
-                      value={styles.linkColor}
-                      onChange={(event) => applyStyles({ linkColor: event.target.value })}
-                      className="h-8 w-8 cursor-pointer rounded border border-slate-200 bg-transparent p-0 dark:border-slate-600"
-                      aria-label="Link color"
-                    />
-                    <span className="text-xs text-slate-500">{styles.linkColor}</span>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 dark:border-slate-700">
-                  <span className="text-sm text-slate-600 dark:text-slate-300">Highlight</span>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="color"
-                      value={styles.highlightColor}
-                      onChange={(event) => applyStyles({ highlightColor: event.target.value })}
-                      className="h-8 w-8 cursor-pointer rounded border border-slate-200 bg-transparent p-0 dark:border-slate-600"
-                      aria-label="Highlight color"
-                    />
-                    <span className="text-xs text-slate-500">{styles.highlightColor}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
           </TabsContent>
         </div>
       </Tabs>

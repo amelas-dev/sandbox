@@ -66,7 +66,7 @@ export function DocumentDesigner({ className, onEditorReady }: DocumentDesignerP
         Placeholder.configure({ placeholder: 'Compose your investor-ready narrative…' }),
         Link.configure({ openOnClick: false, autolink: true }),
         Underline,
-        Highlight,
+        Highlight.configure({ multicolor: true }),
         Image.configure({ allowBase64: true }),
         Table.configure({ resizable: true }),
         TableRow,
