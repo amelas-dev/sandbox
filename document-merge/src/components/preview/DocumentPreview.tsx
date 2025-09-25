@@ -16,9 +16,10 @@ import {
 } from '@/editor/extensions/premium-table';
 import TextAlign from '@tiptap/extension-text-align';
 import Color from '@tiptap/extension-color';
-import TextStyle from '@tiptap/extension-text-style';
+import { ExtendedTextStyle } from '@/editor/extensions/text-style';
 import { useAppStore, selectDataset, selectPreviewRow, selectTemplate } from '@/store/useAppStore';
 import { getDocumentBaseStyles, getPageDimensions, getPagePadding } from '@/lib/template-style';
+import type { PageBackgroundOption } from '@/lib/types';
 import { MergeTag } from '@/editor/merge-tag-node';
 import type { MergeTagAttributes } from '@/lib/types';
 import { getSampleValue } from '@/lib/dataset';
@@ -36,6 +37,13 @@ function extractPrimaryFamily(fontStack: string): string {
   return first.replace(/^['"]/, '').replace(/['"]$/, '');
 }
 
+const PAGE_BACKGROUND_CLASSES: Record<PageBackgroundOption, string> = {
+  white: 'bg-white dark:bg-slate-950',
+  transparent: 'bg-transparent',
+  softGray: 'bg-slate-50 dark:bg-slate-900/80',
+  linen: 'bg-[#fef8f1] dark:bg-slate-900/70',
+};
+
 export function DocumentPreview({ className }: DocumentPreviewProps) {
   const template = useAppStore(selectTemplate);
   const dataset = useAppStore(selectDataset);
@@ -46,6 +54,14 @@ export function DocumentPreview({ className }: DocumentPreviewProps) {
   const pageDimensions = React.useMemo(() => getPageDimensions(template.page), [template.page]);
   const padding = React.useMemo(() => getPagePadding(template.page.margins), [template.page.margins]);
   const baseStyles = React.useMemo(() => getDocumentBaseStyles(template), [template]);
+  const appearance = template.appearance ?? { background: 'white', dropShadow: true, pageBorder: true, stylePreset: 'professional' } as const;
+  const backgroundClass = PAGE_BACKGROUND_CLASSES[appearance.background] ?? PAGE_BACKGROUND_CLASSES.white;
+  const pageShellClass = cn(
+    'relative max-w-full rounded-2xl transition-all duration-150',
+    appearance.pageBorder ? 'border border-slate-200 dark:border-slate-800' : 'border border-transparent',
+    appearance.dropShadow ? 'shadow-xl shadow-slate-200/70 dark:shadow-black/40' : 'shadow-none',
+    backgroundClass,
+  );
   React.useEffect(() => {
     const families = [
       extractPrimaryFamily(template.styles.fontFamily),
@@ -115,7 +131,7 @@ export function DocumentPreview({ className }: DocumentPreviewProps) {
       ListStyleOrdered,
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       Color,
-      TextStyle,
+      ExtendedTextStyle,
       previewMergeTag,
     ];
 
@@ -143,7 +159,7 @@ export function DocumentPreview({ className }: DocumentPreviewProps) {
   return (
     <div className={cn('relative flex h-full w-full items-center justify-center overflow-auto bg-slate-100/70 p-4 sm:p-6 dark:bg-slate-900/80', className)}>
       <div
-        className='relative max-w-full rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-950'
+        className={pageShellClass}
         style={{
           width: `${width}px`,
           height: `${height}px`,
@@ -170,3 +186,4 @@ export function DocumentPreview({ className }: DocumentPreviewProps) {
     </div>
   );
 }
+
