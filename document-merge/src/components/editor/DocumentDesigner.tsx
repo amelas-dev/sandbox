@@ -19,6 +19,7 @@ import Dropcursor from '@tiptap/extension-dropcursor';
 import Gapcursor from '@tiptap/extension-gapcursor';
 import { useAppStore, selectDataset, selectTemplate } from '@/store/useAppStore';
 import { MergeTag } from '@/editor/merge-tag-node';
+import { InlineTableControls } from './InlineTableControls';
 import { ListStyleBullet, ListStyleOrdered } from '@/editor/extensions/list-style';
 import { ExtendedTextStyle } from '@/editor/extensions/text-style';
 import { getSampleValue } from '@/lib/dataset';
@@ -60,6 +61,8 @@ export function DocumentDesigner({ className, onEditorReady }: DocumentDesignerP
       }),
     [dataset, previewIndex],
   );
+
+  const editorContainerRef = React.useRef<HTMLDivElement | null>(null);
 
   const editor = useEditor(
     {
@@ -169,11 +172,13 @@ export function DocumentDesigner({ className, onEditorReady }: DocumentDesignerP
         )}
         <div className="absolute inset-0 overflow-auto">
           <div
+            ref={editorContainerRef}
             style={{ ...padding, ...baseStyles }}
             className="relative h-full w-full"
             data-document-typography
           >
             <EditorContent editor={editor} />
+            {editor ? <InlineTableControls editor={editor} containerRef={editorContainerRef} /> : null}
           </div>
         </div>
         <div className="absolute inset-x-0 bottom-3 flex justify-center text-xs text-slate-400">
