@@ -17,6 +17,8 @@ export interface PremiumTableAttributes {
   borderStyle: TableBorderStyle;
   stripe: TableStripeOption;
   stripeColor: string;
+  cellPadding: string;
+  tableWidth: string;
 }
 
 export interface PremiumTableCellAttributes {
@@ -27,6 +29,7 @@ export const DEFAULT_TABLE_BORDER_COLOR = '#e2e8f0';
 export const DEFAULT_TABLE_BORDER_WIDTH = '1px';
 export const DEFAULT_TABLE_BORDER_STYLE: TableBorderStyle = 'solid';
 export const DEFAULT_TABLE_STRIPE_COLOR = 'rgba(148, 163, 184, 0.12)';
+export const DEFAULT_TABLE_CELL_PADDING = '12px';
 
 function sanitizeCssValue(value: unknown): string | undefined {
   if (typeof value !== 'string') {
@@ -134,26 +137,54 @@ export const PremiumTable = Table.extend({
           'data-table-stripe': attributes.stripe ?? 'none',
         }),
       },
-      stripeColor: {
-        default: DEFAULT_TABLE_STRIPE_COLOR,
-        parseHTML: (element: HTMLElement) => {
-          const data = sanitizeCssValue(element.getAttribute('data-stripe-color'));
-          const fromStyle = sanitizeCssValue(element.style.getPropertyValue('--dm-table-stripe-color'));
-          return data ?? fromStyle ?? DEFAULT_TABLE_STRIPE_COLOR;
-        },
-        renderHTML: (attributes: { stripeColor?: string }) => {
-          const color = sanitizeCssValue(attributes.stripeColor) ?? DEFAULT_TABLE_STRIPE_COLOR;
-          return {
-            'data-stripe-color': color,
-            style: `--dm-table-stripe-color: ${color}`,
-          };
-        },
-      },
-    };
-  },
 
-  renderHTML({ node, HTMLAttributes }) {
-    const { tableStyle, stripe, borderColor, borderWidth, borderStyle, stripeColor, style, ...rest } =
+    stripeColor: {
+      default: DEFAULT_TABLE_STRIPE_COLOR,
+      parseHTML: (element: HTMLElement) => {
+        const data = sanitizeCssValue(element.getAttribute('data-stripe-color'));
+        const fromStyle = sanitizeCssValue(element.style.getPropertyValue('--dm-table-stripe-color'));
+        return data ?? fromStyle ?? DEFAULT_TABLE_STRIPE_COLOR;
+      },
+      renderHTML: (attributes: { stripeColor?: string }) => {
+        const color = sanitizeCssValue(attributes.stripeColor) ?? DEFAULT_TABLE_STRIPE_COLOR;
+        return {
+          'data-stripe-color': color,
+        };
+      },
+    },
+    cellPadding: {
+      default: DEFAULT_TABLE_CELL_PADDING,
+      parseHTML: (element: HTMLElement) => {
+        const data = sanitizeCssValue(element.getAttribute('data-cell-padding'));
+        const fromStyle = sanitizeCssValue(element.style.getPropertyValue('--dm-table-cell-padding'));
+        return data ?? fromStyle ?? DEFAULT_TABLE_CELL_PADDING;
+      },
+      renderHTML: (attributes: { cellPadding?: string }) => {
+        const padding = sanitizeCssValue(attributes.cellPadding) ?? DEFAULT_TABLE_CELL_PADDING;
+        return {
+          'data-cell-padding': padding,
+        };
+      },
+    },
+    tableWidth: {
+      default: 'auto',
+      parseHTML: (element: HTMLElement) => {
+        const data = sanitizeCssValue(element.getAttribute('data-table-width'));
+        const inline = sanitizeCssValue(element.style.width);
+        return data ?? inline ?? 'auto';
+      },
+      renderHTML: (attributes: { tableWidth?: string }) => {
+        const width = sanitizeCssValue(attributes.tableWidth) ?? 'auto';
+        return {
+          'data-table-width': width,
+        };
+      },
+    },
+  };
+},
+
+renderHTML({ node, HTMLAttributes }) {
+    const { tableStyle, stripe, borderColor, borderWidth, borderStyle, stripeColor, cellPadding, tableWidth, style, ...rest } =
       HTMLAttributes as Partial<PremiumTableAttributes> & { style?: string } & Record<string, unknown>;
     const parent = this.parent?.({ node, HTMLAttributes: rest });
     if (!parent) {
@@ -168,6 +199,11 @@ export const PremiumTable = Table.extend({
       sanitizeCssValue(borderWidth) ? `--dm-table-border-width: ${borderWidth}` : undefined,
       sanitizeCssValue(borderStyle) ? `--dm-table-border-style: ${borderStyle}` : undefined,
       sanitizeCssValue(stripeColor) ? `--dm-table-stripe-color: ${stripeColor}` : undefined,
+      sanitizeCssValue(cellPadding) ? `--dm-table-cell-padding: ${cellPadding}` : undefined,
+      (() => {
+        const width = sanitizeCssValue(tableWidth);
+        return width && width !== 'auto' ? `width: ${width}` : undefined;
+      })(),
     );
 
     const nextAttributes: AttributeRecord = {
@@ -178,6 +214,8 @@ export const PremiumTable = Table.extend({
       'data-border-width': sanitizeCssValue(borderWidth) ?? DEFAULT_TABLE_BORDER_WIDTH,
       'data-border-style': sanitizeCssValue(borderStyle) ?? DEFAULT_TABLE_BORDER_STYLE,
       'data-stripe-color': sanitizeCssValue(stripeColor) ?? DEFAULT_TABLE_STRIPE_COLOR,
+      'data-cell-padding': sanitizeCssValue(cellPadding) ?? DEFAULT_TABLE_CELL_PADDING,
+      'data-table-width': sanitizeCssValue(tableWidth) ?? 'auto',
     };
 
     if (composedStyle) {

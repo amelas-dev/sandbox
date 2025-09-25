@@ -27,6 +27,7 @@ import type { Editor } from '@tiptap/core';
 import { cn } from '@/lib/utils';
 import { ensureGoogleFontsLoaded } from '@/lib/google-font-loader';
 import { getDocumentBaseStyles, getPageDimensions, getPagePadding } from '@/lib/template-style';
+import type { PageBackgroundOption } from '@/lib/types';
 
 function extractPrimaryFamily(fontStack: string): string {
   if (!fontStack) {
@@ -35,6 +36,13 @@ function extractPrimaryFamily(fontStack: string): string {
   const first = fontStack.split(',')[0]?.trim() ?? '';
   return first.replace(/^['"]/, '').replace(/['"]$/, '');
 }
+
+const PAGE_BACKGROUND_CLASSES: Record<PageBackgroundOption, string> = {
+  white: 'bg-white dark:bg-slate-950',
+  transparent: 'bg-transparent',
+  softGray: 'bg-slate-50 dark:bg-slate-900/80',
+  linen: 'bg-[#fef8f1] dark:bg-slate-900/70',
+};
 
 export interface DocumentDesignerProps {
   className?: string;
@@ -136,6 +144,15 @@ export function DocumentDesigner({ className, onEditorReady }: DocumentDesignerP
   const padding = React.useMemo(() => getPagePadding(template.page.margins), [template.page.margins]);
   const baseStyles = React.useMemo(() => getDocumentBaseStyles(template), [template]);
   const page = template.page;
+  const appearance = template.appearance ?? { background: 'white', dropShadow: true, pageBorder: true, stylePreset: 'professional' } as const;
+  const backgroundClass = PAGE_BACKGROUND_CLASSES[appearance.background] ?? PAGE_BACKGROUND_CLASSES.white;
+  const pageShellClass = cn(
+    'relative max-w-full rounded-2xl transition-all duration-150',
+    appearance.pageBorder ? 'border border-slate-200 dark:border-slate-800' : 'border border-transparent',
+    appearance.dropShadow ? 'shadow-xl shadow-slate-200/70 dark:shadow-black/40' : 'shadow-none',
+    backgroundClass,
+  );
+
   const { width: pageWidth, height: pageHeight } = pageDimensions;
 
   React.useEffect(() => {
@@ -157,9 +174,7 @@ export function DocumentDesigner({ className, onEditorReady }: DocumentDesignerP
       )}
     >
       <div
-        className={cn(
-          'relative max-w-full rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-950',
-        )}
+        className={pageShellClass}
         style={{
           width: `${pageWidth}px`,
           height: `${pageHeight}px`,

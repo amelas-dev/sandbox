@@ -81,6 +81,12 @@ const DEFAULT_TEMPLATE: TemplateDoc = {
     orientation: 'portrait',
     margins: { top: 72, right: 72, bottom: 72, left: 72 },
   },
+  appearance: {
+    background: 'white',
+    dropShadow: true,
+    pageBorder: true,
+    stylePreset: 'professional',
+  },
   styles: {
     fontFamily: 'Inter, system-ui, sans-serif',
     baseFontSize: 14,
@@ -119,6 +125,10 @@ function withTemplateDefaults(template?: TemplateDoc): TemplateDoc {
     styles: {
       ...DEFAULT_TEMPLATE.styles,
       ...(template.styles ?? DEFAULT_TEMPLATE.styles),
+    },
+    appearance: {
+      ...DEFAULT_TEMPLATE.appearance,
+      ...(template.appearance ?? DEFAULT_TEMPLATE.appearance),
     },
     content: template.content ?? DEFAULT_TEMPLATE.content,
   };
@@ -227,6 +237,7 @@ export const useAppStore = create<AppState>()(
             ...update,
             page: { ...state.template.page, ...update.page },
             styles: { ...state.template.styles, ...update.styles },
+            appearance: { ...state.template.appearance, ...update.appearance },
           },
         })),
       setTemplateContent: (content) =>

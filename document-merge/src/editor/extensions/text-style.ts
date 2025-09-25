@@ -25,6 +25,11 @@ export const ExtendedTextStyle = TextStyle.extend({
         parseHTML: (element) => element.style.fontSize || null,
         renderHTML: (attributes) => asStyle('font-size', attributes.fontSize),
       },
+      lineHeight: {
+        default: null,
+        parseHTML: (element) => element.style.lineHeight || null,
+        renderHTML: (attributes) => asStyle('line-height', attributes.lineHeight),
+      },
       letterSpacing: {
         default: null,
         parseHTML: (element) => element.style.letterSpacing || null,

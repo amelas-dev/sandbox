@@ -31,6 +31,16 @@ export type BulletStyle = 'disc' | 'circle' | 'square';
 export type NumberedStyle = 'decimal' | 'lower-alpha' | 'upper-roman';
 export type CanvasMode = 'edit' | 'preview';
 
+export type PageBackgroundOption = 'white' | 'transparent' | 'softGray' | 'linen';
+export type DocumentStylePreset = 'professional' | 'minimal' | 'vibrant';
+
+export interface TemplateAppearance {
+  background: PageBackgroundOption;
+  dropShadow: boolean;
+  pageBorder: boolean;
+  stylePreset: DocumentStylePreset;
+}
+
 export interface TemplateTypography {
   fontFamily: string;
   baseFontSize: number;
@@ -58,11 +68,15 @@ export interface TemplateDoc {
     orientation: Orientation;
     margins: { top: number; right: number; bottom: number; left: number };
   };
+  appearance: TemplateAppearance;
   styles: TemplateTypography;
 }
 
 export type TemplateUpdate =
-  Partial<Omit<TemplateDoc, 'styles'>> & { styles?: Partial<TemplateTypography> };
+  Partial<Omit<TemplateDoc, 'styles' | 'appearance'>> & {
+    styles?: Partial<TemplateTypography>;
+    appearance?: Partial<TemplateAppearance>;
+  };
 
 export interface GenerationFilter {
   field: string;

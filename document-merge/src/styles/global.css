@@ -83,6 +83,7 @@ body {
   --dm-table-border-width: 1px;
   --dm-table-border-style: solid;
   --dm-table-stripe-color: rgba(148, 163, 184, 0.12);
+  --dm-table-cell-padding: 0.65rem;
   border: var(--dm-table-border-width) var(--dm-table-border-style) var(--dm-table-border-color);
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
 }
@@ -96,7 +97,7 @@ body {
 [data-document-typography] table td,
 [data-document-typography] table th {
   border: var(--dm-table-border-width) var(--dm-table-border-style) var(--dm-table-border-color);
-  padding: 0.65rem 0.85rem;
+  padding: var(--dm-table-cell-padding, 0.65rem);
   text-align: left;
   font-size: inherit;
   line-height: inherit;
