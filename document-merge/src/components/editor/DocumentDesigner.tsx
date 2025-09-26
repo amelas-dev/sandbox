@@ -169,7 +169,7 @@ export function DocumentDesigner({ className, onEditorReady }: DocumentDesignerP
   return (
     <div
       className={cn(
-        'relative flex h-full w-full items-center justify-center overflow-auto bg-slate-100/70 p-4 sm:p-6',
+        'relative flex h-full w-full items-center justify-center overflow-auto scrollbar-sleek bg-slate-100/70 p-4 sm:p-6',
         className,
       )}
     >
@@ -185,7 +185,7 @@ export function DocumentDesigner({ className, onEditorReady }: DocumentDesignerP
         {showGrid && (
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(99,102,241,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(99,102,241,0.08)_1px,transparent_1px)] [background-size:32px_32px]" />
         )}
-        <div className="absolute inset-0 overflow-auto">
+        <div className="absolute inset-0 overflow-auto scrollbar-sleek">
           <div
             ref={editorContainerRef}
             style={{ ...padding, ...baseStyles }}

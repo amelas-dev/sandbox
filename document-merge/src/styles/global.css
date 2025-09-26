@@ -8,11 +8,53 @@
 
 body {
   font-family: 'Roboto', system-ui, sans-serif;
-  @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100;
+  @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 overflow-hidden;
 }
 
 #root {
-  @apply min-h-screen;
+  @apply h-screen overflow-hidden;
+}
+
+.scrollbar-sleek {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-sleek:hover,
+.scrollbar-sleek:focus-visible,
+.scrollbar-sleek:focus-within {
+  scrollbar-width: thin;
+}
+
+.scrollbar-sleek::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+.scrollbar-sleek:hover::-webkit-scrollbar,
+.scrollbar-sleek:focus-visible::-webkit-scrollbar,
+.scrollbar-sleek:focus-within::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scrollbar-sleek::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-sleek:hover::-webkit-scrollbar-thumb,
+.scrollbar-sleek:focus-visible::-webkit-scrollbar-thumb,
+.scrollbar-sleek:focus-within::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.45);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.scrollbar-sleek:hover::-webkit-scrollbar-thumb:hover,
+.scrollbar-sleek:focus-visible::-webkit-scrollbar-thumb:hover,
+.scrollbar-sleek:focus-within::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(99, 102, 241, 0.65);
 }
 
 * {

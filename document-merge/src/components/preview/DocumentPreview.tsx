@@ -17,7 +17,7 @@ import {
 import TextAlign from '@tiptap/extension-text-align';
 import Color from '@tiptap/extension-color';
 import { ExtendedTextStyle } from '@/editor/extensions/text-style';
-import { useAppStore, selectDataset, selectPreviewRow, selectTemplate } from '@/store/useAppStore';
+import { useAppStore, selectDataset, selectTemplate } from '@/store/useAppStore';
 import { getDocumentBaseStyles, getPageDimensions, getPagePadding } from '@/lib/template-style';
 import type { PageBackgroundOption } from '@/lib/types';
 import { MergeTag } from '@/editor/merge-tag-node';
@@ -47,7 +47,6 @@ const PAGE_BACKGROUND_CLASSES: Record<PageBackgroundOption, string> = {
 export function DocumentPreview({ className }: DocumentPreviewProps) {
   const template = useAppStore(selectTemplate);
   const dataset = useAppStore(selectDataset);
-  const previewRow = useAppStore(selectPreviewRow);
   const previewIndex = useAppStore((state) => state.previewIndex);
   const zoom = useAppStore((state) => state.zoom);
 
@@ -71,31 +70,6 @@ export function DocumentPreview({ className }: DocumentPreviewProps) {
       ensureGoogleFontsLoaded(families);
     }
   }, [template.styles.fontFamily, template.styles.headingFontFamily]);
-
-  const recordSummary = React.useMemo(() => {
-    if (!dataset || !dataset.rows.length) {
-      return 'No dataset loaded';
-    }
-    const total = dataset.rows.length;
-    const current = Math.min(previewIndex + 1, total);
-    const candidateKeys = dataset.fields.map((field) => field.key);
-    let label: string | undefined;
-    if (previewRow) {
-      for (const key of candidateKeys) {
-        const value = previewRow[key];
-        if (value === undefined || value === null) {
-          continue;
-        }
-        const text = String(value).trim();
-        if (text) {
-          label = text;
-          break;
-        }
-      }
-    }
-    return label ? `Record ${current} of ${total} • ${label}` : `Record ${current} of ${total}`;
-  }, [dataset, previewIndex, previewRow]);
-
   const html = React.useMemo(() => {
     if (!template.content) {
       return '';
@@ -157,7 +131,8 @@ export function DocumentPreview({ className }: DocumentPreviewProps) {
   const { width, height } = pageDimensions;
 
   return (
-    <div className={cn('relative flex h-full w-full items-center justify-center overflow-auto bg-slate-100/70 p-4 sm:p-6 dark:bg-slate-900/80', className)}>
+    <div className={cn('relative flex h-full w-full items-center justify-center overflow-auto scrollbar-sleek bg-slate-100/70 p-4 sm:p-6 dark:bg-slate-900/80', className)}
+    >
       <div
         className={pageShellClass}
         style={{
@@ -168,12 +143,7 @@ export function DocumentPreview({ className }: DocumentPreviewProps) {
         }}
         aria-label='Document preview'
       >
-        <div className='absolute inset-x-0 top-3 flex justify-center px-4'>
-          <span className='rounded-full bg-slate-900/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white shadow dark:bg-slate-700/80'>
-            {recordSummary}
-          </span>
-        </div>
-        <div className='absolute inset-0 overflow-auto'>
+        <div className='absolute inset-0 overflow-auto scrollbar-sleek'>
           <div
             style={{ ...padding, ...baseStyles }}
             className='relative h-full w-full min-h-[800px] prose prose-slate max-w-none dark:prose-invert prose-headings:font-semibold'

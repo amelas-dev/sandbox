@@ -164,7 +164,7 @@ export function FieldPalette({ onInsertField }: FieldPaletteProps) {
           </Button>
         )}
       </div>
-      <ScrollArea className='mt-4 flex-1 min-h-0'>
+      <ScrollArea className='mt-4 flex-1 min-h-0 scrollbar-sleek'>
         <div className='flex flex-col gap-3 pr-2'>
           {filteredFields.map((field) => (
             <FieldChip

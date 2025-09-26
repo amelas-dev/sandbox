@@ -580,7 +580,7 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
             <TableIcon className='h-4 w-4' /> Comp
           </TabsTrigger>
         </TabsList>
-        <div className='flex-1 overflow-y-auto pr-1 pt-2'>
+        <div className='flex-1 overflow-y-auto pr-1 pt-2 scrollbar-sleek'>
           <TabsContent value='layout' className='space-y-6'>
             <section className='space-y-2'>
               <Label className='text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400'>Page size</Label>

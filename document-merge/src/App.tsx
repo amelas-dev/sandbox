@@ -146,12 +146,14 @@ export default function App() {
   }, [fields.length, previewIndex]);
 
   return (
-    <div className='min-h-screen bg-gradient-to-br from-slate-100 via-white to-slate-100/60 pb-10 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950'>
-      <div className='mx-auto flex min-h-screen w-full max-w-screen-2xl flex-col gap-6 px-4 pt-6 sm:px-6 lg:gap-8'>
-        <AppHeader />
-        <div className='grid flex-1 grid-cols-1 items-start gap-4 lg:[grid-template-columns:320px_minmax(0,1fr)] xl:[grid-template-columns:320px_minmax(0,1fr)_360px] 2xl:[grid-template-columns:340px_minmax(0,1fr)_380px]'>
-          <aside className='order-1 flex min-h-[220px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/80 lg:sticky lg:top-24 lg:h-[calc(100vh-12rem)] lg:max-h-[calc(100vh-12rem)]'>
-            <div className='mb-4 flex flex-wrap items-center justify-between gap-2'>
+    <div className='flex h-full w-full overflow-hidden bg-gradient-to-br from-slate-100 via-white to-slate-100/60 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950'>
+      <div className='mx-auto flex h-full w-full max-w-screen-2xl flex-col gap-4 px-4 py-4 sm:px-6 lg:gap-6'>
+        <div className='shrink-0'>
+          <AppHeader />
+        </div>
+        <div className='grid flex-1 min-h-0 grid-cols-1 items-stretch gap-4 overflow-hidden lg:[grid-template-columns:320px_minmax(0,1fr)] xl:[grid-template-columns:320px_minmax(0,1fr)_360px] 2xl:[grid-template-columns:340px_minmax(0,1fr)_380px]'>
+          <aside className='order-1 flex min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/80'>
+            <div className='mb-4 flex shrink-0 flex-wrap items-center justify-between gap-2'>
               <h2 className='text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400'>
                 Field palette
               </h2>
@@ -161,10 +163,12 @@ export default function App() {
                 </Badge>
               )}
             </div>
-            <FieldPalette onInsertField={handleInsertField} />
+            <div className='flex-1 min-h-0 overflow-hidden'>
+              <FieldPalette onInsertField={handleInsertField} />
+            </div>
           </aside>
-          <main className='order-2 flex min-h-[420px] min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/95 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/80 lg:min-h-[560px]'>
-            <div className='flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-3 text-xs uppercase tracking-wide text-slate-400 dark:border-slate-800 dark:text-slate-500 sm:px-6'>
+          <main className='order-2 flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/95 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/80'>
+            <div className='flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-3 text-xs uppercase tracking-wide text-slate-400 dark:border-slate-800 dark:text-slate-500 sm:px-6'>
               <div className='flex flex-wrap items-center gap-3'>
                 <span>Document workspace</span>
                 <ToggleGroup
@@ -186,7 +190,7 @@ export default function App() {
                 </span>
               </span>
             </div>
-            <div className='flex-1'>
+            <div className='flex-1 min-h-0 overflow-hidden'>
               {canvasMode === 'preview' ? (
                 <DocumentPreview className='h-full' />
               ) : (
@@ -194,16 +198,16 @@ export default function App() {
               )}
             </div>
           </main>
-          <aside className='order-3 flex min-h-[220px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/80 lg:col-span-2 lg:flex-row lg:gap-6 lg:py-6 xl:col-span-1 xl:flex-col xl:gap-0 xl:py-5'>
-            <div className='mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 lg:mb-0 lg:w-44 xl:mb-4 xl:w-full'>
+          <aside className='order-3 flex min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/80 lg:col-span-2 lg:flex-row lg:gap-6 lg:py-6 xl:col-span-1 xl:flex-col xl:gap-0 xl:py-5'>
+            <div className='mb-4 shrink-0 text-sm font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 lg:mb-0 lg:w-44 xl:mb-4 xl:w-full'>
               Properties
             </div>
-            <div className='flex-1'>
+            <div className='flex-1 min-h-0 overflow-hidden'>
               <PropertiesPanel editor={canvasMode === 'edit' ? editor : null} />
             </div>
           </aside>
         </div>
-        <footer className='flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white/95 px-4 py-4 text-sm shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/85 md:flex-row md:items-center md:justify-between'>
+        <footer className='shrink-0 flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white/95 px-4 py-4 text-sm shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/85 md:flex-row md:items-center md:justify-between'>
           <div className='flex flex-wrap items-center gap-x-6 gap-y-2 text-slate-600 dark:text-slate-300'>
             <span>
               Words: <strong>{stats.words}</strong>
