@@ -298,5 +298,18 @@ function createCellExtension(base: typeof TableCell | typeof TableHeader) {
 
 export const PremiumTableCell = createCellExtension(TableCell);
 export const PremiumTableHeader = createCellExtension(TableHeader);
-export const PremiumTableRow = TableRow;
+export const PremiumTableRow = TableRow.extend({
+  addAttributes() {
+    const parent = this.parent?.();
+    return {
+      ...(parent ?? {}),
+      suppressIfEmpty: {
+        default: false,
+        parseHTML: (element: HTMLElement) => element.getAttribute('data-suppress-row') === 'true',
+        renderHTML: (attributes: { suppressIfEmpty?: boolean }) =>
+          attributes.suppressIfEmpty ? { 'data-suppress-row': 'true' } : {},
+      },
+    };
+  },
+});
 

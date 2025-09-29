@@ -8,7 +8,9 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUp,
+  Check,
   Heading3,
+  EyeOff,
   LayoutPanelLeft,
   LayoutPanelTop,
   Plus,
@@ -440,6 +442,8 @@ export function InlineTableControls({ editor, containerRef }: InlineTableControl
 
   const cellAttributes = editor.getAttributes('tableCell') as { backgroundColor?: string | null };
   const currentFill = (cellAttributes?.backgroundColor as string | null | undefined) ?? null;
+  const rowAttributes = editor.getAttributes('tableRow') as { suppressIfEmpty?: boolean };
+  const suppressRowWhenEmpty = Boolean(rowAttributes?.suppressIfEmpty);
 
   const tableActive = editor.isActive('table');
   const canManager = editor.can() as Record<string, (() => boolean) | undefined>;
@@ -555,6 +559,21 @@ export function InlineTableControls({ editor, containerRef }: InlineTableControl
               tone='danger'
               disabled={!tableActive || !canManager.deleteTable?.()}
               onSelect={() => runWithSelection((chain) => chain.deleteTable())}
+            />
+          </ContextMenuSection>
+
+          <MenuSeparator />
+
+          <ContextMenuSection title='Visibility'>
+            <ContextMenuCheckbox
+              label='Suppress row when empty'
+              icon={EyeOff}
+              checked={suppressRowWhenEmpty}
+              onToggle={() =>
+                runWithSelection((chain) =>
+                  chain.updateAttributes('tableRow', { suppressIfEmpty: !suppressRowWhenEmpty }),
+                )
+              }
             />
           </ContextMenuSection>
 
@@ -726,6 +745,44 @@ function ContextMenuSection({ title, children }: { title: string; children: Reac
   );
 }
 
+function ContextMenuCheckbox({
+  label,
+  icon: Icon,
+  checked,
+  onToggle,
+}: {
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  checked: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type='button'
+      onClick={onToggle}
+      className={cn(
+        'flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-left text-sm font-medium text-slate-600 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:text-slate-200 dark:hover:bg-slate-800',
+        checked && 'bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-slate-50',
+      )}
+      role='menuitemcheckbox'
+      aria-checked={checked}
+    >
+      <span
+        className={cn(
+          'flex h-4 w-4 items-center justify-center rounded border border-slate-300 text-transparent transition dark:border-slate-600',
+          checked
+            ? 'border-brand-500 bg-brand-500 text-white dark:border-brand-400 dark:bg-brand-400'
+            : 'bg-white dark:bg-slate-900',
+        )}
+        aria-hidden='true'
+      >
+        {checked ? <Check className='h-3 w-3' /> : null}
+      </span>
+      <Icon className='h-4 w-4 text-slate-400 dark:text-slate-500' aria-hidden='true' />
+      <span className='flex-1'>{label}</span>
+    </button>
+  );
+}
 function ContextMenuButton({
   icon: Icon,
   label,
@@ -800,3 +857,5 @@ function ColorSwatch({
     </button>
   );
 }
+
+

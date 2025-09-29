@@ -1,11 +1,14 @@
 import * as React from 'react';
 import { NodeViewWrapper, type NodeViewProps } from '@tiptap/react';
-import { Clipboard, PenSquare, Trash2 } from 'lucide-react';
+import { Clipboard, EyeOff, PenSquare, Trash2 } from 'lucide-react';
+import type { MergeTagAttributes } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -27,10 +30,7 @@ export function MergeTagView({
   updateAttributes,
   editor,
 }: NodeViewProps) {
-  const { fieldKey, label } = node.attrs as {
-    fieldKey: string;
-    label?: string;
-  };
+  const { fieldKey, label, suppressIfEmpty } = node.attrs as MergeTagAttributes;
   const options = extension.options as MergeTagOptions;
   const sample = React.useMemo(
     () => options.sampleProvider?.(fieldKey) ?? '',
@@ -88,6 +88,15 @@ export function MergeTagView({
               <DropdownMenuItem onSelect={handleCopy}>
                 <Clipboard className='mr-2 h-4 w-4' /> Copy as text
               </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuCheckboxItem
+                className='cursor-pointer'
+                checked={Boolean(suppressIfEmpty)}
+                onCheckedChange={(checked) => updateAttributes({ suppressIfEmpty: checked === true })}
+              >
+                <EyeOff className='mr-2 h-4 w-4' /> Suppress if empty
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem
                 onSelect={handleRemove}
                 className='text-red-600'

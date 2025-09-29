@@ -40,6 +40,12 @@ export const MergeTag = Node.create<MergeTagOptions>({
       label: {
         default: null,
       },
+      suppressIfEmpty: {
+        default: false,
+        parseHTML: (element: HTMLElement) => element.getAttribute('data-suppress-empty') === 'true',
+        renderHTML: (attributes: { suppressIfEmpty?: boolean }) =>
+          attributes.suppressIfEmpty ? { 'data-suppress-empty': 'true' } : {},
+      },
     };
   },
 
@@ -48,13 +54,17 @@ export const MergeTag = Node.create<MergeTagOptions>({
   },
 
   renderHTML({ HTMLAttributes }) {
-    const attrs = HTMLAttributes as MergeTagAttributes & { class?: string };
+    const attrs = HTMLAttributes as MergeTagAttributes & { class?: string; suppressIfEmpty?: boolean };
+    const baseAttributes: Record<string, unknown> = {
+      'data-merge-tag': attrs.fieldKey,
+      class: `merge-tag inline-flex items-center rounded-md border border-brand-200 bg-brand-50 px-2 py-1 font-mono text-xs text-brand-700`,
+    };
+    if (attrs.suppressIfEmpty) {
+      baseAttributes['data-suppress-empty'] = 'true';
+    }
     return [
       'span',
-      mergeAttributes(HTMLAttributes, {
-        'data-merge-tag': attrs.fieldKey,
-        class: `merge-tag inline-flex items-center rounded-md border border-brand-200 bg-brand-50 px-2 py-1 font-mono text-xs text-brand-700`,
-      }),
+      mergeAttributes(HTMLAttributes, baseAttributes),
       `{{ ${attrs.label ?? attrs.fieldKey} }}`,
     ];
   },

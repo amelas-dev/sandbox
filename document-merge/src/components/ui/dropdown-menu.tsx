@@ -45,9 +45,42 @@ const DropdownMenuItem = React.forwardRef<
       className,
     )}
     {...props}
-  />
+ />
 ));
 DropdownMenuItem.displayName = DropdownMenuPrimitive.Item.displayName;
+
+const DropdownMenuCheckboxItem = React.forwardRef<
+  React.ElementRef<typeof DropdownMenuPrimitive.CheckboxItem>,
+  React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.CheckboxItem>
+>(({ className, children, ...props }, ref) => (
+  <DropdownMenuPrimitive.CheckboxItem
+    ref={ref}
+    className={cn(
+      'relative flex cursor-default select-none items-center rounded-md px-2 py-1.5 text-sm font-medium outline-none transition-colors focus:bg-slate-100 focus:text-slate-900 data-[state=checked]:font-semibold dark:focus:bg-slate-800 dark:focus:text-slate-50',
+      className,
+    )}
+    {...props}
+  >
+    <DropdownMenuPrimitive.ItemIndicator className='absolute left-2 flex h-3.5 w-3.5 items-center justify-center'>
+      <svg
+        className='h-3 w-3 text-brand-500 dark:text-brand-400'
+        viewBox='0 0 16 16'
+        fill='none'
+        aria-hidden='true'
+      >
+        <path
+          d='M3.5 8.5l2.5 2.5 6-6'
+          stroke='currentColor'
+          strokeWidth='1.5'
+          strokeLinecap='round'
+          strokeLinejoin='round'
+        />
+      </svg>
+    </DropdownMenuPrimitive.ItemIndicator>
+    <span className='pl-5'>{children}</span>
+  </DropdownMenuPrimitive.CheckboxItem>
+));
+DropdownMenuCheckboxItem.displayName = DropdownMenuPrimitive.CheckboxItem.displayName;
 
 const DropdownMenuLabel = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Label>,
@@ -99,6 +132,7 @@ export {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuCheckboxItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuGroup,

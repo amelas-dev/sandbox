@@ -24,6 +24,7 @@ import { MergeTag } from '@/editor/merge-tag-node';
 import type { MergeTagAttributes } from '@/lib/types';
 import { getSampleValue } from '@/lib/dataset';
 import { cn } from '@/lib/utils';
+import { pruneTemplateContent } from '@/lib/merge';
 
 interface DocumentPreviewProps {
   className?: string;
@@ -75,19 +76,32 @@ export function DocumentPreview({ className }: DocumentPreviewProps) {
       return '';
     }
 
+    const previewRecord = dataset && dataset.rows.length
+      ? dataset.rows[previewIndex] ?? dataset.rows[0]
+      : undefined;
+
+    const baseContent = template.content as JSONContent;
+    const preparedContent = previewRecord ? pruneTemplateContent(baseContent, previewRecord) : baseContent;
+
     const previewMergeTag = MergeTag.extend({
-      renderHTML({ HTMLAttributes }) {
-        const attrs = HTMLAttributes as MergeTagAttributes;
-        const value = getSampleValue(dataset, attrs.fieldKey, previewIndex);
+      renderHTML({ node }) {
+        const attrs = node.attrs as MergeTagAttributes;
+        const fieldKey = attrs.fieldKey;
+        const suppressIfEmpty = Boolean(attrs.suppressIfEmpty);
+        const value = dataset ? getSampleValue(dataset, fieldKey, previewIndex) : '';
         const label = attrs.label ?? attrs.fieldKey;
+        const baseAttrs: Record<string, string> = { 'data-merge-tag': fieldKey };
+        if (suppressIfEmpty) {
+          baseAttrs['data-suppress-empty'] = 'true';
+        }
         if (!value) {
           return [
             'span',
-            { class: 'text-slate-400 italic dark:text-slate-500' },
-            label,
+            { ...baseAttrs, class: 'text-slate-400 italic dark:text-slate-500' },
+            suppressIfEmpty ? '' : label,
           ];
         }
-        return ['span', { class: 'text-slate-900 dark:text-slate-100' }, value];
+        return ['span', { ...baseAttrs, class: 'text-slate-900 dark:text-slate-100' }, value];
       },
     });
 
@@ -110,7 +124,7 @@ export function DocumentPreview({ className }: DocumentPreviewProps) {
     ];
 
     try {
-      return generateHTML(template.content as JSONContent, extensions);
+      return generateHTML(preparedContent, extensions);
     } catch (error) {
       console.error('Failed to generate preview HTML', error);
       return '<p>Unable to render preview.</p>';

@@ -95,6 +95,7 @@ export interface GenerationOptions {
 export interface MergeTagAttributes {
   fieldKey: string;
   label?: string;
+  suppressIfEmpty?: boolean;
 }
 
 export interface PersistedState {

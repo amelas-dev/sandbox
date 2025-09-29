@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { renderFilename, substituteMergeTags } from '../src/lib/merge';
+import type { JSONContent } from '@tiptap/core';
+import { pruneTemplateContent, renderFilename, substituteMergeTags } from '../src/lib/merge';
 
 describe('substituteMergeTags', () => {
   it('replaces tokens with record values, handling nested paths and dates', () => {
@@ -22,6 +23,75 @@ describe('substituteMergeTags', () => {
     const record = { note: '<script>alert(1)</script>' };
     const template = 'Safe: {{ note }}';
     expect(substituteMergeTags(template, record)).toBe('Safe: &lt;script&gt;alert(1)&lt;/script&gt;');
+  });
+});
+
+describe('pruneTemplateContent', () => {
+  it('drops paragraphs that contain suppressed merge tags with no data', () => {
+    const content: JSONContent = {
+      type: 'doc',
+      content: [
+        {
+          type: 'paragraph',
+          content: [
+            { type: 'mergeTag', attrs: { fieldKey: 'AddressLine2', suppressIfEmpty: true } },
+          ],
+        },
+        {
+          type: 'paragraph',
+          content: [{ type: 'text', text: 'Next line stays' }],
+        },
+      ],
+    };
+
+    const record = { AddressLine2: '' } as Record<string, unknown>;
+    const pruned = pruneTemplateContent(content, record);
+
+    expect(content.content?.length).toBe(2);
+    expect(pruned.content?.length).toBe(1);
+    expect(pruned.content?.[0]?.type).toBe('paragraph');
+    expect(pruned.content?.[0]?.content?.[0]?.type).toBe('text');
+
+    const withValue = pruneTemplateContent(content, { AddressLine2: 'Suite 200' });
+    expect(withValue.content?.length).toBe(2);
+  });
+
+  it('removes suppressible table rows when all cells resolve to empty values', () => {
+    const tableDoc: JSONContent = {
+      type: 'doc',
+      content: [
+        {
+          type: 'table',
+          content: [
+            {
+              type: 'tableRow',
+              content: [
+                { type: 'tableHeader', content: [{ type: 'text', text: 'Amount' }] },
+                { type: 'tableHeader', content: [{ type: 'text', text: 'Notes' }] },
+              ],
+            },
+            {
+              type: 'tableRow',
+              attrs: { suppressIfEmpty: true },
+              content: [
+                { type: 'tableCell', content: [{ type: 'mergeTag', attrs: { fieldKey: 'Amount' } }] },
+                { type: 'tableCell', content: [{ type: 'mergeTag', attrs: { fieldKey: 'Notes', suppressIfEmpty: true } }] },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    const emptyRecord = { Amount: null, Notes: '' } as Record<string, unknown>;
+    const prunedEmpty = pruneTemplateContent(tableDoc, emptyRecord);
+    const tableAfter = prunedEmpty.content?.[0];
+    expect(tableAfter?.type).toBe('table');
+    expect(tableAfter?.content?.length).toBe(1);
+
+    const valuedRecord = { Amount: 0, Notes: 'Paid in full' } as Record<string, unknown>;
+    const prunedWithValues = pruneTemplateContent(tableDoc, valuedRecord);
+    expect(prunedWithValues.content?.[0]?.content?.length).toBe(2);
   });
 });
 

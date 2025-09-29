@@ -73,7 +73,7 @@ export default function App() {
       editor
         .chain()
         .focus()
-        .insertContent({ type: 'mergeTag', attrs: { fieldKey, label } })
+        .insertContent({ type: 'mergeTag', attrs: { fieldKey, label, suppressIfEmpty: false } })
         .run();
     },
     [editor, fieldLookup],
