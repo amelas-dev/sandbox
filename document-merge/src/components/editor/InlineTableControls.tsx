@@ -446,7 +446,7 @@ export function InlineTableControls({ editor, containerRef }: InlineTableControl
   const suppressRowWhenEmpty = Boolean(rowAttributes?.suppressIfEmpty);
 
   const tableActive = editor.isActive('table');
-  const canManager = editor.can() as Record<string, (() => boolean) | undefined>;
+  const canManager = editor.can();
 
   const runWithSelection = React.useCallback(
     (apply: (chain: ReturnType<Editor['chain']>) => ReturnType<Editor['chain']>) => {

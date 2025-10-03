@@ -164,7 +164,7 @@ export function TableControls({ editor }: TableControlsProps) {
   }, [editor]);
 
   const tableActive = Boolean(editor?.isActive('table'));
-  const canManager = editor ? (editor.can() as Record<string, (() => boolean) | undefined>) : undefined;
+  const canManager = editor?.can();
   const selection = editor?.state.selection;
   const cellSelection = selection instanceof CellSelection ? selection : null;
   const multiCellSelection = Boolean(cellSelection && cellSelection.ranges.length > 1);
