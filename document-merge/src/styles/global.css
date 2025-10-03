@@ -196,3 +196,40 @@ body {
   background-color: rgba(99, 102, 241, 0.35);
   pointer-events: none;
 }
+
+.dm-image-inline {
+  display: inline-block;
+  margin: calc(var(--dm-paragraph-spacing) * 0.5) 0;
+}
+
+.dm-image-align-left {
+  float: left;
+  margin: calc(var(--dm-paragraph-spacing) * 0.5)
+    calc(var(--dm-paragraph-spacing) * 0.75)
+    calc(var(--dm-paragraph-spacing) * 0.75)
+    0;
+}
+
+.dm-image-align-right {
+  float: right;
+  margin: calc(var(--dm-paragraph-spacing) * 0.5)
+    0
+    calc(var(--dm-paragraph-spacing) * 0.75)
+    calc(var(--dm-paragraph-spacing) * 0.75);
+}
+
+.dm-image-align-center {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  margin-top: calc(var(--dm-paragraph-spacing) * 0.75);
+  margin-bottom: calc(var(--dm-paragraph-spacing) * 0.75);
+}
+
+.dm-image-align-full {
+  display: block;
+  width: 100% !important;
+  margin-top: calc(var(--dm-paragraph-spacing) * 0.75);
+  margin-bottom: calc(var(--dm-paragraph-spacing) * 0.75);
+}
+
