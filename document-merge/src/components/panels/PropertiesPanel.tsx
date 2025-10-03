@@ -42,6 +42,7 @@ import {
   DEFAULT_TABLE_CELL_PADDING,
   type PremiumTableAttributes,
 } from '@/editor/extensions/premium-table';
+import { applyTableSelection, type TableSelectionScope } from '@/lib/editor/tableSelection';
 
 interface PropertiesPanelProps {
   editor: Editor | null;
@@ -493,7 +494,7 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
     }
   }, [rawTableWidth, tableWidthMode]);
 
-  const canManager = editor ? (editor.can() as Record<string, (() => boolean) | undefined>) : undefined;
+  const canManager = editor?.can();
 
   const updateTableAttributes = (update: Partial<PremiumTableAttributes>) => {
     if (!editor) return;
@@ -528,23 +529,9 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
     }
   };
 
-  const handleEditSelection = (scope: 'table' | 'row' | 'column' | 'cell') => {
+  const handleEditSelection = (scope: TableSelectionScope) => {
     if (!editor) return;
-    const chain = editor.chain().focus();
-    switch (scope) {
-      case 'table':
-        chain.selectTable().run();
-        break;
-      case 'row':
-        chain.selectRow().run();
-        break;
-      case 'column':
-        chain.selectColumn().run();
-        break;
-      case 'cell':
-        chain.selectCell().run();
-        break;
-    }
+    applyTableSelection(editor, scope);
   };
 
   const handleTableWidthChange = (mode: TableWidthMode) => {

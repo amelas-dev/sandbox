@@ -1,4 +1,5 @@
 import Table from '@tiptap/extension-table';
+import type { TableOptions } from '@tiptap/extension-table';
 import TableRow from '@tiptap/extension-table-row';
 import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
@@ -58,16 +59,22 @@ function resolveParentAttributes<T extends Node['config']['addAttributes']>(
 
 export const PremiumTable = Table.extend({
   addOptions() {
-    const parent = this.parent?.();
-    const parentAttributes = parent?.HTMLAttributes ?? {};
+    const parent = (this.parent?.() ?? {}) as Partial<TableOptions>;
+    const parentAttributes = parent.HTMLAttributes ?? {};
     const className = [parentAttributes.class, 'dm-table'].filter(Boolean).join(' ');
+
     return {
-      ...(parent ?? {}),
       HTMLAttributes: {
         ...parentAttributes,
         class: className,
       },
-    };
+      resizable: parent.resizable ?? false,
+      handleWidth: parent.handleWidth ?? 5,
+      cellMinWidth: parent.cellMinWidth ?? 25,
+      View: parent.View ?? null,
+      lastColumnResizable: parent.lastColumnResizable ?? true,
+      allowTableNodeSelection: parent.allowTableNodeSelection ?? false,
+    } satisfies TableOptions;
   },
 
   addAttributes() {
@@ -183,7 +190,7 @@ export const PremiumTable = Table.extend({
   };
 },
 
-renderHTML({ node, HTMLAttributes }) {
+  renderHTML({ node, HTMLAttributes }) {
     const { tableStyle, stripe, borderColor, borderWidth, borderStyle, stripeColor, cellPadding, tableWidth, style, ...rest } =
       HTMLAttributes as Partial<PremiumTableAttributes> & { style?: string } & Record<string, unknown>;
     const parent = this.parent?.({ node, HTMLAttributes: rest });
@@ -252,10 +259,10 @@ function createCellExtension(base: typeof TableCell | typeof TableHeader) {
       };
     },
 
-    renderHTML({ HTMLAttributes }) {
+    renderHTML({ node, HTMLAttributes }) {
       const { backgroundColor, style, ...rest } = HTMLAttributes as PremiumTableCellAttributes &
         Record<string, unknown> & { style?: string };
-      const parent = this.parent?.({ HTMLAttributes: rest });
+      const parent = this.parent?.({ node, HTMLAttributes: rest });
       if (!parent) {
         const tag = base.name === 'tableHeader' ? 'th' : 'td';
         const attrs = composeStyle(typeof style === 'string' ? style : undefined, undefined);
