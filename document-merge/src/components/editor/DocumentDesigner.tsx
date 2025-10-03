@@ -5,7 +5,7 @@ import Placeholder from '@tiptap/extension-placeholder';
 import Link from '@tiptap/extension-link';
 import Underline from '@tiptap/extension-underline';
 import Highlight from '@tiptap/extension-highlight';
-import Image from '@tiptap/extension-image';
+import { EnhancedImage, DEFAULT_IMAGE_BORDER_COLOR } from '@/editor/extensions/enhanced-image';
 import {
   PremiumTable,
   PremiumTableCell,
@@ -20,6 +20,7 @@ import Gapcursor from '@tiptap/extension-gapcursor';
 import { useAppStore, selectDataset, selectTemplate } from '@/store/useAppStore';
 import { MergeTag } from '@/editor/merge-tag-node';
 import { InlineTableControls } from './InlineTableControls';
+import { InlineImageControls } from './InlineImageControls';
 import { ListStyleBullet, ListStyleOrdered } from '@/editor/extensions/list-style';
 import { ExtendedTextStyle } from '@/editor/extensions/text-style';
 import { getSampleValue } from '@/lib/dataset';
@@ -80,7 +81,7 @@ export function DocumentDesigner({ className, onEditorReady }: DocumentDesignerP
         Link.configure({ openOnClick: false, autolink: true }),
         Underline,
         Highlight.configure({ multicolor: true }),
-        Image.configure({ allowBase64: true }),
+        EnhancedImage.configure({ allowBase64: true }),
         PremiumTable.configure({ resizable: true }),
         PremiumTableRow,
         PremiumTableCell,
@@ -127,6 +128,181 @@ export function DocumentDesigner({ className, onEditorReady }: DocumentDesignerP
     },
     [mergeTagExtension],
   );
+
+  React.useEffect(() => {
+    if (!editor) {
+      return;
+    }
+
+    const container = editorContainerRef.current;
+    if (!container) {
+      return;
+    }
+
+    const MAX_IMAGE_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
+
+    const readFileAsDataUrl = (file: File) =>
+      new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (typeof reader.result === 'string') {
+            resolve(reader.result);
+          } else {
+            reject(new Error('Unable to read image.'));
+          }
+        };
+        reader.onerror = () => {
+          reject(reader.error ?? new Error('Unable to read image.'));
+        };
+        reader.readAsDataURL(file);
+      });
+
+    const buildImageAttributes = (src: string, alt?: string | null) => ({
+      src,
+      alt: alt && alt.trim().length > 0 ? alt.trim() : null,
+      title: null,
+      widthPercent: 60,
+      alignment: 'inline' as const,
+      borderRadius: 8,
+      borderWidth: 0,
+      borderColor: DEFAULT_IMAGE_BORDER_COLOR,
+      shadow: true,
+    });
+
+    const sanitizeFileAlt = (file: File) =>
+      file.name
+        .replace(/\.[^./]+$/, '')
+        .replace(/[-_]+/g, ' ')
+        .trim();
+
+    const pickFirstUri = (value: string) => {
+      const lines = value.split('\n');
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (trimmed.length === 0 || trimmed.startsWith('#')) {
+          continue;
+        }
+        return trimmed;
+      }
+      return '';
+    };
+
+    const isLikelyImageSource = (value: string) =>
+      /^data:image\//i.test(value) || /^(https?:|blob:)/i.test(value);
+
+    const getDropPosition = (event: DragEvent) => {
+      const view = editor.view;
+      const coords = view.posAtCoords({ left: event.clientX, top: event.clientY });
+      return coords?.pos ?? view.state.selection.to;
+    };
+
+    const insertImageAt = (position: number, src: string, alt?: string | null) => {
+      editor
+        .chain()
+        .focus()
+        .insertContentAt(position, { type: 'image', attrs: buildImageAttributes(src, alt) })
+        .run();
+      return editor.state.selection.to;
+    };
+
+    const collectImageFiles = (transfer: DataTransfer) => {
+      const files: File[] = [];
+      if (transfer.items) {
+        for (let index = 0; index < transfer.items.length; index += 1) {
+          const item = transfer.items[index];
+          if (!item || item.kind !== 'file') {
+            continue;
+          }
+          const file = item.getAsFile();
+          if (file && file.type.startsWith('image/')) {
+            files.push(file);
+          }
+        }
+      }
+      if (files.length === 0) {
+        for (let index = 0; index < transfer.files.length; index += 1) {
+          const file = transfer.files.item(index);
+          if (file && file.type.startsWith('image/')) {
+            files.push(file);
+          }
+        }
+      }
+      return files;
+    };
+
+    const containsType = (transfer: DataTransfer, type: string) => {
+      for (let index = 0; index < transfer.types.length; index += 1) {
+        if (transfer.types[index] === type) {
+          return true;
+        }
+      }
+      return false;
+    };
+
+    const handleDragOver = (event: DragEvent) => {
+      const transfer = event.dataTransfer;
+      if (!transfer) {
+        return;
+      }
+
+      const hasImageFile = collectImageFiles(transfer).length > 0;
+      const hasImageUrl = containsType(transfer, 'text/uri-list');
+      if (hasImageFile || hasImageUrl) {
+        event.preventDefault();
+        transfer.dropEffect = 'copy';
+      }
+    };
+
+    const handleDrop = (event: DragEvent) => {
+      const transfer = event.dataTransfer;
+      if (!transfer) {
+        return;
+      }
+
+      const dropPosition = getDropPosition(event);
+      const imageFiles = collectImageFiles(transfer);
+
+      if (imageFiles.length > 0) {
+        event.preventDefault();
+
+        const processFiles = async () => {
+          let nextPosition = dropPosition;
+          for (const file of imageFiles) {
+            if (file.size > MAX_IMAGE_FILE_SIZE) {
+              console.warn('Skipped image larger than 5 MB.');
+              continue;
+            }
+            try {
+              const dataUrl = await readFileAsDataUrl(file);
+              nextPosition = insertImageAt(nextPosition, dataUrl, sanitizeFileAlt(file));
+            } catch (error) {
+              console.error('Failed to load dropped image', error);
+            }
+          }
+        };
+
+        void processFiles();
+        return;
+      }
+
+      const uriList = transfer.getData('text/uri-list');
+      const plainText = transfer.getData('text/plain');
+      const candidate = pickFirstUri(uriList || plainText);
+
+      if (candidate.length > 0 && isLikelyImageSource(candidate)) {
+        event.preventDefault();
+        insertImageAt(dropPosition, candidate);
+      }
+    };
+
+    container.addEventListener('dragover', handleDragOver);
+    container.addEventListener('drop', handleDrop);
+
+    return () => {
+      container.removeEventListener('dragover', handleDragOver);
+      container.removeEventListener('drop', handleDrop);
+    };
+  }, [editor]);
 
   React.useEffect(() => {
     if (editor && onEditorReady) {
@@ -196,7 +372,12 @@ export function DocumentDesigner({ className, onEditorReady }: DocumentDesignerP
             data-document-typography
           >
             <EditorContent editor={editor} />
-            {editor ? <InlineTableControls editor={editor} containerRef={editorContainerRef} /> : null}
+            {editor ? (
+              <>
+                <InlineTableControls editor={editor} containerRef={editorContainerRef} />
+                <InlineImageControls editor={editor} containerRef={editorContainerRef} />
+              </>
+            ) : null}
           </div>
         </div>
         <div className="absolute inset-x-0 bottom-3 flex justify-center text-xs text-slate-400">

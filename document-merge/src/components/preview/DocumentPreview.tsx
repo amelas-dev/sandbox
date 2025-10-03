@@ -7,7 +7,7 @@ import { ensureGoogleFontsLoaded } from '@/lib/google-font-loader';
 import Link from '@tiptap/extension-link';
 import Underline from '@tiptap/extension-underline';
 import Highlight from '@tiptap/extension-highlight';
-import Image from '@tiptap/extension-image';
+import { EnhancedImage } from '@/editor/extensions/enhanced-image';
 import {
   PremiumTable,
   PremiumTableCell,
@@ -110,7 +110,7 @@ export function DocumentPreview({ className }: DocumentPreviewProps) {
       Link.configure({ openOnClick: true, autolink: true }),
       Underline,
       Highlight,
-      Image.configure({ allowBase64: true }),
+      EnhancedImage.configure({ allowBase64: true }),
       PremiumTable.configure({ resizable: true }),
       PremiumTableRow,
       PremiumTableCell,

@@ -12,9 +12,15 @@ import {
   Minus,
   Palette,
   Plus,
+  RefreshCcw,
   Ruler,
+  Sparkles,
+  Square,
+  StretchHorizontal,
   Table as TableIcon,
+  Trash2,
   Type as TypeIcon,
+  Upload,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -43,10 +49,14 @@ import {
   type PremiumTableAttributes,
 } from '@/editor/extensions/premium-table';
 import { applyTableSelection, type TableSelectionScope } from '@/lib/editor/tableSelection';
+import type { EnhancedImageAttributes, ImageAlignment } from '@/editor/extensions/enhanced-image';
+import { DEFAULT_IMAGE_BORDER_COLOR } from '@/editor/extensions/enhanced-image';
 
 interface PropertiesPanelProps {
   editor: Editor | null;
 }
+
+type PropertiesTab = 'layout' | 'style' | 'type' | 'comp';
 
 interface FontFamilyDropdownProps {
   label: string;
@@ -77,6 +87,8 @@ const STYLE_COLOR_PALETTE = [
   '#facc15',
   '#f59e0b',
 ];
+
+const IMAGE_BORDER_COLORS = Array.from(new Set([DEFAULT_IMAGE_BORDER_COLOR, ...STYLE_COLOR_PALETTE]));
 
 const BACKGROUND_OPTIONS: Array<{ value: PageBackgroundOption; label: string }> = [
   { value: 'white', label: 'White' },
@@ -129,6 +141,18 @@ const PARAGRAPH_STYLE_OPTIONS = [
   { value: 'heading1', label: 'Heading 1' },
   { value: 'heading2', label: 'Heading 2' },
   { value: 'heading3', label: 'Heading 3' },
+];
+
+const IMAGE_ALIGNMENT_OPTIONS: Array<{
+  value: ImageAlignment;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}> = [
+  { value: 'inline', label: 'Inline', icon: Square },
+  { value: 'left', label: 'Left', icon: AlignLeft },
+  { value: 'center', label: 'Center', icon: AlignCenter },
+  { value: 'right', label: 'Right', icon: AlignRight },
+  { value: 'full', label: 'Full width', icon: StretchHorizontal },
 ];
 
 type TableWidthMode = 'auto' | 'full' | 'custom';
@@ -470,9 +494,15 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
 
   const handleResetZoom = () => setZoom(1);
 
+  const [activeTab, setActiveTab] = React.useState<PropertiesTab>('layout');
   const [componentType, setComponentType] = React.useState<'table' | 'image' | 'chart'>('table');
   const [insertRows, setInsertRows] = React.useState(3);
   const [insertCols, setInsertCols] = React.useState(3);
+  const [imageUrlInput, setImageUrlInput] = React.useState('');
+  const [imageInsertAlt, setImageInsertAlt] = React.useState('');
+  const [imageUploadError, setImageUploadError] = React.useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const [imageAltDraft, setImageAltDraft] = React.useState('');
 
   const tableActive = Boolean(editor?.isActive('table'));
   const tableAttributes: Partial<PremiumTableAttributes> = tableActive
@@ -494,7 +524,56 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
     }
   }, [rawTableWidth, tableWidthMode]);
 
+  const imageActive = editor?.isActive('image') ?? false;
+  const imageAttributes: Partial<EnhancedImageAttributes> = imageActive
+    ? ((editor?.getAttributes('image') as Partial<EnhancedImageAttributes>) ?? {})
+    : {};
+  const imageWidthPercent = Math.round(
+    typeof imageAttributes.widthPercent === 'number'
+      ? Math.max(10, Math.min(100, imageAttributes.widthPercent))
+      : 60,
+  );
+  const imageAlignment = (imageAttributes.alignment as ImageAlignment) ?? 'inline';
+  const imageBorderRadius =
+    typeof imageAttributes.borderRadius === 'number' ? Math.max(0, imageAttributes.borderRadius) : 8;
+  const imageBorderWidth =
+    typeof imageAttributes.borderWidth === 'number' ? Math.max(0, imageAttributes.borderWidth) : 0;
+  const imageBorderColor =
+    typeof imageAttributes.borderColor === 'string' && imageAttributes.borderColor
+      ? imageAttributes.borderColor
+      : DEFAULT_IMAGE_BORDER_COLOR;
+  const imageShadow = imageAttributes.shadow ?? true;
+  const imageAltValue = typeof imageAttributes.alt === 'string' ? imageAttributes.alt : '';
+  const imageSrcValue = typeof imageAttributes.src === 'string' ? imageAttributes.src : '';
+
+  React.useEffect(() => {
+    if (imageActive) {
+      setImageAltDraft(imageAltValue);
+      setComponentType('image');
+      setActiveTab('comp');
+    } else {
+      setImageAltDraft('');
+    }
+  }, [imageActive, imageAltValue]);
+
+  const handleTabChange = React.useCallback((value: string) => {
+    if (!value) {
+      return;
+    }
+    setActiveTab(value as PropertiesTab);
+  }, []);
+
   const canManager = editor?.can();
+
+  const updateImageAttributes = React.useCallback(
+    (next: Partial<EnhancedImageAttributes>) => {
+      if (!editor || !imageActive) {
+        return;
+      }
+      editor.chain().focus().updateAttributes('image', next).run();
+    },
+    [editor, imageActive],
+  );
 
   const updateTableAttributes = (update: Partial<PremiumTableAttributes>) => {
     if (!editor) return;
@@ -550,9 +629,140 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
     updateTableAttributes({ tableWidth: normalized });
   };
 
+  const handleImageInsert = () => {
+    if (!editor) {
+      return;
+    }
+    const src = imageUrlInput.trim();
+    if (!src) {
+      return;
+    }
+    const alt = imageInsertAlt.trim();
+    const chain = editor.chain().focus().setImage({ src, alt: alt.length > 0 ? alt : null });
+    chain.updateAttributes('image', {
+      widthPercent: 60,
+      alignment: 'inline',
+      borderRadius: 8,
+      borderWidth: 0,
+      borderColor: DEFAULT_IMAGE_BORDER_COLOR,
+      shadow: true,
+    });
+    chain.run();
+    setComponentType('image');
+    setImageUrlInput('');
+    setImageInsertAlt('');
+    setImageUploadError(null);
+  };
+
+  const handleImageUpload: React.ChangeEventHandler<HTMLInputElement> = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setImageUploadError('File is larger than 5 MB. Choose a smaller image.');
+      event.target.value = '';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImageUploadError(null);
+      setImageUrlInput(typeof reader.result === 'string' ? reader.result : '');
+    };
+    reader.readAsDataURL(file);
+    event.target.value = '';
+  };
+
+  const handleImageAlignmentChange = (value: string) => {
+    if (!value || !editor || !imageActive) {
+      return;
+    }
+    updateImageAttributes({ alignment: value as ImageAlignment });
+  };
+
+  const handleImageWidthChange = (value: number) => {
+    if (!editor || !imageActive) {
+      return;
+    }
+    const next = Math.max(10, Math.min(100, Number.isFinite(value) ? value : imageWidthPercent));
+    updateImageAttributes({ widthPercent: next });
+  };
+
+  const handleImageBorderRadiusChange = (value: number) => {
+    if (!editor || !imageActive) {
+      return;
+    }
+    const next = Math.max(0, Number.isFinite(value) ? value : imageBorderRadius);
+    updateImageAttributes({ borderRadius: next });
+  };
+
+  const handleImageBorderWidthChange = (value: number) => {
+    if (!editor || !imageActive) {
+      return;
+    }
+    const next = Math.max(0, Number.isFinite(value) ? value : imageBorderWidth);
+    updateImageAttributes({ borderWidth: next });
+  };
+
+  const handleImageBorderColorChange = (color: string) => {
+    if (!editor || !imageActive) {
+      return;
+    }
+    updateImageAttributes({ borderColor: color });
+  };
+
+  const handleImageShadowToggle = () => {
+    if (!editor || !imageActive) {
+      return;
+    }
+    updateImageAttributes({ shadow: !imageShadow });
+  };
+
+  const handleImageAltDraftChange = (value: string) => {
+    setImageAltDraft(value);
+    if (!editor || !imageActive) {
+      return;
+    }
+    const trimmed = value.trim();
+    updateImageAttributes({ alt: trimmed.length > 0 ? trimmed : null });
+  };
+
+  const handleImageReplace = () => {
+    if (!editor || !imageActive) {
+      return;
+    }
+    const next = window.prompt('Paste image URL or data URI', imageSrcValue);
+    if (!next || next.trim().length === 0) {
+      return;
+    }
+    updateImageAttributes({ src: next.trim() });
+  };
+
+  const handleImageReset = () => {
+    if (!editor || !imageActive) {
+      return;
+    }
+    updateImageAttributes({
+      widthPercent: 60,
+      alignment: 'inline',
+      borderRadius: 8,
+      borderWidth: 0,
+      borderColor: DEFAULT_IMAGE_BORDER_COLOR,
+      shadow: true,
+    });
+    setImageAltDraft(imageAltValue);
+  };
+
+  const handleImageRemove = () => {
+    if (!editor || !imageActive) {
+      return;
+    }
+    editor.chain().focus().deleteSelection().run();
+  };
+
   return (
     <div className='flex h-full min-h-0 flex-col gap-4'>
-      <Tabs defaultValue='layout' className='flex h-full flex-col'>
+      <Tabs value={activeTab} onValueChange={handleTabChange} className='flex h-full flex-col'>
         <TabsList className='grid w-full grid-cols-4 gap-2 rounded-2xl bg-slate-100/60 p-1 text-sm dark:bg-slate-800/60'>
           <TabsTrigger value='layout' className='gap-2 rounded-xl px-3 py-2 text-xs font-semibold uppercase tracking-wide'>
             <Ruler className='h-4 w-4' /> Layout
@@ -977,11 +1187,7 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
               </div>
             </section>
 
-            {componentType !== 'table' ? (
-              <div className='rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-400'>
-                Component tools for {componentType} coming soon. Select Table to access inline table editing controls.
-              </div>
-            ) : (
+            {componentType === 'table' ? (
               <>
                 <section className='space-y-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900'>
                   <span className='text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400'>Table structure</span>
@@ -1181,6 +1387,240 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
                   </div>
                 </section>
               </>
+            ) : componentType === 'image' ? (
+              <>
+                <section className='space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900'>
+                  <span className='text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400'>Insert image</span>
+                  <div className='space-y-2'>
+                    <Label className='text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400'>Image source</Label>
+                    <Input
+                      value={imageUrlInput}
+                      onChange={(event) => setImageUrlInput(event.target.value)}
+                      placeholder='https://example.com/visual.png or data URI'
+                      className='h-9 rounded-xl border-slate-200 text-sm dark:border-slate-700'
+                    />
+                  </div>
+                  <div className='space-y-2'>
+                    <Label className='text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400'>Alt text</Label>
+                    <Input
+                      value={imageInsertAlt}
+                      onChange={(event) => setImageInsertAlt(event.target.value)}
+                      placeholder='Describe the image for accessibility'
+                      className='h-9 rounded-xl border-slate-200 text-sm dark:border-slate-700'
+                    />
+                  </div>
+                  <div className='flex flex-wrap items-center gap-2'>
+                    <input ref={fileInputRef} type='file' accept='image/*' onChange={handleImageUpload} className='hidden' />
+                    <Button type='button' size='sm' variant='outline' className='gap-2 rounded-xl' onClick={() => fileInputRef.current?.click()}>
+                      <Upload className='h-4 w-4' /> Upload
+                    </Button>
+                    <Button
+                      type='button'
+                      size='sm'
+                      className='rounded-xl'
+                      onClick={handleImageInsert}
+                      disabled={!editor || imageUrlInput.trim().length === 0}
+                    >
+                      Insert image
+                    </Button>
+                    <Button
+                      type='button'
+                      variant='ghost'
+                      size='sm'
+                      className='rounded-xl'
+                      onClick={() => {
+                        setImageUrlInput('');
+                        setImageInsertAlt('');
+                        setImageUploadError(null);
+                      }}
+                    >
+                      Clear
+                    </Button>
+                  </div>
+                  {imageUploadError ? (
+                    <p className='text-xs font-medium text-red-500 dark:text-red-400'>{imageUploadError}</p>
+                  ) : null}
+                  <p className='text-xs text-slate-500 dark:text-slate-400'>Paste a web URL or upload a file up to 5 MB. Images insert at 60% width by default.</p>
+                </section>
+
+                <section className='space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900'>
+                  <div className='flex items-center justify-between'>
+                    <span className='text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400'>Selected image</span>
+                    {imageActive ? (
+                      <Button
+                        type='button'
+                        variant='ghost'
+                        size='sm'
+                        className='gap-1 rounded-xl text-xs font-semibold text-slate-500 hover:text-brand-600 dark:text-slate-300 dark:hover:text-brand-300'
+                        onClick={handleImageReplace}
+                      >
+                        <RefreshCcw className='h-3.5 w-3.5' /> Replace
+                      </Button>
+                    ) : null}
+                  </div>
+
+                  {imageActive ? (
+                    <>
+                      <div className='space-y-2'>
+                        <Label className='text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400'>Alt text</Label>
+                        <Input
+                          value={imageAltDraft}
+                          onChange={(event) => handleImageAltDraftChange(event.target.value)}
+                          placeholder='Describe the image'
+                          className='h-9 rounded-xl border-slate-200 text-sm dark:border-slate-700'
+                        />
+                      </div>
+
+                      <div className='space-y-2'>
+                        <span className='text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400'>Alignment</span>
+                        <ToggleGroup
+                          type='single'
+                          value={imageAlignment}
+                          onValueChange={handleImageAlignmentChange}
+                          className='flex flex-wrap gap-2'
+                        >
+                          {IMAGE_ALIGNMENT_OPTIONS.map((option) => {
+                            const Icon = option.icon;
+                            return (
+                              <ToggleGroupItem
+                                key={option.value}
+                                value={option.value}
+                                className='flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-500 transition data-[state=on]:border-brand-500 data-[state=on]:bg-brand-500/10 data-[state=on]:text-brand-600 dark:border-slate-700 dark:text-slate-300 dark:data-[state=on]:border-brand-400 dark:data-[state=on]:text-brand-100'
+                              >
+                                <Icon className='h-4 w-4' /> {option.label}
+                              </ToggleGroupItem>
+                            );
+                          })}
+                        </ToggleGroup>
+                      </div>
+
+                      <div className='space-y-2'>
+                        <div className='flex items-center justify-between text-sm text-slate-600 dark:text-slate-300'>
+                          <span>Width</span>
+                          <span>{imageWidthPercent}%</span>
+                        </div>
+                        <Slider
+                          value={[imageWidthPercent]}
+                          onValueChange={(value) => handleImageWidthChange(value[0] ?? imageWidthPercent)}
+                          min={10}
+                          max={100}
+                          step={5}
+                        />
+                      </div>
+
+                      <div className='grid gap-3 sm:grid-cols-2'>
+                        <div className='space-y-2'>
+                          <div className='flex items-center justify-between text-sm text-slate-600 dark:text-slate-300'>
+                            <span>Corner radius</span>
+                            <span>{Math.round(imageBorderRadius)}px</span>
+                          </div>
+                          <Slider
+                            value={[imageBorderRadius]}
+                            onValueChange={(value) => handleImageBorderRadiusChange(value[0] ?? imageBorderRadius)}
+                            min={0}
+                            max={48}
+                            step={2}
+                          />
+                        </div>
+                        <div className='space-y-2'>
+                          <div className='flex items-center justify-between text-sm text-slate-600 dark:text-slate-300'>
+                            <span>Border width</span>
+                            <span>{Math.round(imageBorderWidth)}px</span>
+                          </div>
+                          <Slider
+                            value={[imageBorderWidth]}
+                            onValueChange={(value) => handleImageBorderWidthChange(value[0] ?? imageBorderWidth)}
+                            min={0}
+                            max={12}
+                            step={1}
+                          />
+                        </div>
+                      </div>
+
+                      <div className='space-y-2'>
+                        <span className='text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400'>Border color</span>
+                        <div className='flex flex-wrap items-center gap-2'>
+                          {IMAGE_BORDER_COLORS.map((color) => (
+                            <button
+                              key={color}
+                              type='button'
+                              onClick={() => handleImageBorderColorChange(color)}
+                              className={cn(
+                                'h-8 w-8 rounded-full border border-slate-200 shadow-sm transition focus-visible:ring-2 focus-visible:ring-offset-2 dark:border-slate-700',
+                                imageBorderColor.toLowerCase() === color.toLowerCase()
+                                  ? 'ring-2 ring-brand-500 ring-offset-2'
+                                  : 'hover:ring-2 hover:ring-slate-300 hover:ring-offset-2',
+                              )}
+                              style={{ backgroundColor: color }}
+                            >
+                              <span className='sr-only'>Apply border color {color}</span>
+                            </button>
+                          ))}
+                          <Button
+                            type='button'
+                            variant='ghost'
+                            size='sm'
+                            className='rounded-xl'
+                            onClick={() => handleImageBorderWidthChange(0)}
+                          >
+                            Remove border
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className='flex flex-wrap gap-2'>
+                        <Button
+                          type='button'
+                          size='sm'
+                          variant={imageBorderWidth > 0 ? 'default' : 'outline'}
+                          className='gap-2 rounded-xl'
+                          onClick={() => handleImageBorderWidthChange(imageBorderWidth > 0 ? 0 : 2)}
+                        >
+                          <Square className='h-4 w-4' /> {imageBorderWidth > 0 ? 'Border on' : 'Add border'}
+                        </Button>
+                        <Button
+                          type='button'
+                          size='sm'
+                          variant={imageShadow ? 'default' : 'outline'}
+                          className='gap-2 rounded-xl'
+                          onClick={handleImageShadowToggle}
+                        >
+                          <Sparkles className='h-4 w-4' /> {imageShadow ? 'Shadow on' : 'Shadow off'}
+                        </Button>
+                      </div>
+
+                      <div className='flex items-center justify-between'>
+                        <Button
+                          type='button'
+                          variant='ghost'
+                          size='sm'
+                          className='rounded-xl text-xs font-semibold text-slate-500 hover:text-brand-600 dark:text-slate-400 dark:hover:text-brand-300'
+                          onClick={handleImageReset}
+                        >
+                          Reset formatting
+                        </Button>
+                        <Button
+                          type='button'
+                          variant='outline'
+                          size='sm'
+                          className='flex items-center gap-1 rounded-xl border-red-200 text-xs font-semibold text-red-600 transition hover:bg-red-50 dark:border-red-500/40 dark:text-red-300 dark:hover:bg-red-500/10'
+                          onClick={handleImageRemove}
+                        >
+                          <Trash2 className='h-3.5 w-3.5' /> Remove
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className='rounded-xl border border-dashed border-slate-300 bg-slate-50/70 p-4 text-sm text-slate-500 dark:border-slate-700 dark:bg-slate-900/40 dark:text-slate-400'>
+                      Select an image in the document to unlock formatting options.
+                    </div>
+                  )}
+                </section>
+              </>
+            ) : (
+              <div className='rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-400'>
+                Component tools for charts are coming soon. Select Table or Image to access inline editing controls.
+              </div>
             )}
           </TabsContent>
         </div>
