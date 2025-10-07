@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Separator } from '@/components/ui/separator';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ColorSwatchButton } from '@/components/ui/color-swatch-button';
 import { cn } from '@/lib/utils';
 import {
   DEFAULT_TABLE_BORDER_COLOR,
@@ -112,35 +113,6 @@ function extractCellAttributes(
   }
   const headerAttrs = (editor.getAttributes('tableHeader') as PremiumTableCellAttributes) ?? {};
   return headerAttrs;
-}
-
-function ColorSwatch({
-  color,
-  label,
-  active,
-  onSelect,
-  disabled,
-}: {
-  color: string;
-  label: string;
-  active: boolean;
-  onSelect: (value: string) => void;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      type='button'
-      onClick={() => onSelect(color)}
-      disabled={disabled}
-      className={cn(
-        'h-7 w-7 rounded-full border border-slate-200 shadow-sm transition focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 dark:border-slate-700',
-        active ? 'ring-2 ring-brand-500 ring-offset-2' : 'hover:ring-2 hover:ring-slate-300 hover:ring-offset-2',
-      )}
-      style={{ backgroundColor: color }}
-    >
-      <span className='sr-only'>{label}</span>
-    </button>
-  );
 }
 
 export function TableControls({ editor }: TableControlsProps) {
@@ -513,13 +485,14 @@ export function TableControls({ editor }: TableControlsProps) {
           </div>
           <div className='flex flex-wrap gap-2'>
             {BORDER_COLOR_PALETTE.map((color) => (
-              <ColorSwatch
+              <ColorSwatchButton
                 key={color}
                 color={color}
                 label={`Apply border color ${color}`}
                 active={borderColor.toLowerCase() === color.toLowerCase()}
-                onSelect={(value) => handleSetTableAttributes({ borderColor: value })}
+                onClick={() => handleSetTableAttributes({ borderColor: color })}
                 disabled={!tableActive}
+                className='h-7 w-7'
               />
             ))}
           </div>
@@ -541,20 +514,21 @@ export function TableControls({ editor }: TableControlsProps) {
             <ToggleGroupItem value='none'>Off</ToggleGroupItem>
             <ToggleGroupItem value='rows'>Rows</ToggleGroupItem>
           </ToggleGroup>
-          <div className='space-y-1'>
-            <span className='text-xs font-medium text-slate-500 dark:text-slate-400'>Stripe color</span>
-            <div className='flex flex-wrap gap-2'>
-              {STRIPE_COLOR_PALETTE.map((color) => (
-                <ColorSwatch
-                  key={color}
-                  color={color}
-                  label={`Apply stripe color ${color}`}
-                  active={stripeColor.toLowerCase() === color.toLowerCase()}
-                  onSelect={(value) => handleSetTableAttributes({ stripeColor: value })}
-                  disabled={!tableActive}
-                />
-              ))}
-            </div>
+            <div className='space-y-1'>
+              <span className='text-xs font-medium text-slate-500 dark:text-slate-400'>Stripe color</span>
+              <div className='flex flex-wrap gap-2'>
+                {STRIPE_COLOR_PALETTE.map((color) => (
+                  <ColorSwatchButton
+                    key={color}
+                    color={color}
+                    label={`Apply stripe color ${color}`}
+                    active={stripeColor.toLowerCase() === color.toLowerCase()}
+                    onClick={() => handleSetTableAttributes({ stripeColor: color })}
+                    disabled={!tableActive}
+                    className='h-7 w-7'
+                  />
+                ))}
+              </div>
           </div>
         </div>
         <div className='space-y-2'>
@@ -564,13 +538,14 @@ export function TableControls({ editor }: TableControlsProps) {
           </div>
           <div className='flex flex-wrap items-center gap-2'>
             {CELL_BACKGROUND_PALETTE.map((color) => (
-              <ColorSwatch
+              <ColorSwatchButton
                 key={color}
                 color={color}
                 label={`Fill cells with ${color}`}
                 active={cellBackground.toLowerCase() === color.toLowerCase()}
-                onSelect={(value) => handleSetCellBackground(value)}
+                onClick={() => handleSetCellBackground(color)}
                 disabled={!tableActive}
+                className='h-7 w-7'
               />
             ))}
             <Button

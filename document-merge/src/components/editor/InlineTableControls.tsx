@@ -23,6 +23,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ColorSwatchButton } from '@/components/ui/color-swatch-button';
 import {
   DEFAULT_TABLE_BORDER_COLOR,
   DEFAULT_TABLE_BORDER_STYLE,
@@ -642,14 +643,15 @@ export function InlineTableControls({ editor, containerRef }: InlineTableControl
             </div>
             <div className='flex flex-wrap gap-2 px-2 pb-1 pt-1'>
               {BORDER_COLOR_PRESETS.map((preset) => (
-                <ColorSwatch
+                <ColorSwatchButton
                   key={preset.value}
+                  color={preset.value}
                   label={preset.label}
-                  value={preset.value}
                   active={currentBorderColor.toLowerCase() === preset.value.toLowerCase()}
-                  onSelect={() =>
+                  onClick={() =>
                     runWithSelection((chain) => chain.updateAttributes('table', { borderColor: preset.value }))
                   }
+                  className='h-7 w-7'
                 />
               ))}
             </div>
@@ -692,18 +694,19 @@ export function InlineTableControls({ editor, containerRef }: InlineTableControl
           <ContextMenuSection title='Cell fill'>
             <div className='flex flex-wrap gap-2 px-2 pb-1 pt-1'>
               {FILL_COLOR_PRESETS.map((preset) => (
-                <ColorSwatch
+                <ColorSwatchButton
                   key={preset.label}
+                  color={preset.value ?? null}
                   label={preset.label}
-                  value={preset.value}
                   active={(currentFill ?? '') === (preset.value ?? '')}
-                  onSelect={() =>
+                  onClick={() =>
                     runWithSelection((chain) =>
                       preset.value
                         ? chain.setCellAttribute('backgroundColor', preset.value)
                         : chain.setCellAttribute('backgroundColor', null),
                     )
                   }
+                  className='h-7 w-7'
                 />
               ))}
             </div>
@@ -818,42 +821,6 @@ function ContextMenuButton({
     >
       <Icon className='h-4 w-4' />
       <span className='flex-1'>{label}</span>
-    </button>
-  );
-}
-
-function ColorSwatch({
-  label,
-  value,
-  onSelect,
-  active,
-}: {
-  label: string;
-  value: string | null;
-  onSelect: () => void;
-  active?: boolean;
-}) {
-  const style = value
-    ? { backgroundColor: value }
-    : {
-        backgroundImage:
-          'linear-gradient(135deg, rgba(100,116,139,0.4) 0%, rgba(100,116,139,0.4) 48%, transparent 50%, transparent 100%)',
-        backgroundColor: '#f8fafc',
-      };
-
-  return (
-    <button
-      type='button'
-      onClick={onSelect}
-      className={cn(
-        'flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 text-[10px] font-semibold uppercase tracking-wide shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-slate-700 dark:shadow-slate-900/40',
-        active
-          ? 'ring-2 ring-brand-500 ring-offset-2 ring-offset-white dark:ring-offset-slate-900'
-          : 'hover:ring-2 hover:ring-slate-300 hover:ring-offset-2 hover:ring-offset-white dark:hover:ring-slate-600 dark:hover:ring-offset-slate-900',
-      )}
-      style={style}
-    >
-      <span className='sr-only'>{label}</span>
     </button>
   );
 }
