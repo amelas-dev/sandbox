@@ -5,8 +5,12 @@ import {
   AlignCenter,
   AlignLeft,
   AlignRight,
+  FlipHorizontal,
+  FlipVertical,
   ImagePlus,
   RefreshCcw,
+  RotateCcw,
+  RotateCw,
   Sparkles,
   Square,
   StretchHorizontal,
@@ -45,6 +49,14 @@ const ALIGNMENT_OPTIONS: Array<{ label: string; value: ImageAlignment; icon: Rea
   { label: 'Right', value: 'right', icon: AlignRight },
   { label: 'Full width', value: 'full', icon: StretchHorizontal },
 ];
+
+const normalizeRotation = (value: number) => {
+  let normalized = value % 360;
+  if (normalized < 0) {
+    normalized += 360;
+  }
+  return normalized;
+};
 
 /**
  * Provides quick-access formatting for images via right-click in the editor canvas.

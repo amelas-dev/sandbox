@@ -8,6 +8,8 @@ import {
   AlignRight,
   BarChart2,
   ChevronDown,
+  FlipHorizontal,
+  FlipVertical,
   Image as ImageIcon,
   Minus,
   Palette,
@@ -547,6 +549,16 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
       ? imageAttributes.borderColor
       : DEFAULT_IMAGE_BORDER_COLOR;
   const imageShadow = imageAttributes.shadow ?? true;
+  const imageRotation = (() => {
+    const raw = imageAttributes.rotation;
+    if (typeof raw === 'number' && Number.isFinite(raw)) {
+      const normalized = raw % 360;
+      return normalized < 0 ? normalized + 360 : normalized;
+    }
+    return 0;
+  })();
+  const imageFlipHorizontal = imageAttributes.flipHorizontal ?? false;
+  const imageFlipVertical = imageAttributes.flipVertical ?? false;
   const imageAltValue = typeof imageAttributes.alt === 'string' ? imageAttributes.alt : '';
   const imageSrcValue = typeof imageAttributes.src === 'string' ? imageAttributes.src : '';
 
@@ -646,6 +658,9 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
       borderWidth: 0,
       borderColor: DEFAULT_IMAGE_BORDER_COLOR,
       shadow: true,
+      rotation: 0,
+      flipHorizontal: false,
+      flipVertical: false,
     });
     chain.run();
     setComponentType('image');
@@ -699,6 +714,32 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
     updateImageAttributes({ shadow: !imageShadow });
   };
 
+  const handleImageRotationChange = (value: number) => {
+    if (!editor || !imageActive) {
+      return;
+    }
+    const numeric = Number.isFinite(value) ? value : imageRotation;
+    let normalized = numeric % 360;
+    if (normalized < 0) {
+      normalized += 360;
+    }
+    updateImageAttributes({ rotation: normalized });
+  };
+
+  const handleImageFlipHorizontalToggle = () => {
+    if (!editor || !imageActive) {
+      return;
+    }
+    updateImageAttributes({ flipHorizontal: !imageFlipHorizontal });
+  };
+
+  const handleImageFlipVerticalToggle = () => {
+    if (!editor || !imageActive) {
+      return;
+    }
+    updateImageAttributes({ flipVertical: !imageFlipVertical });
+  };
+
   const handleImageAltDraftChange = (value: string) => {
     setImageAltDraft(value);
     if (!editor || !imageActive) {
@@ -747,6 +788,9 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
       borderWidth: 0,
       borderColor: DEFAULT_IMAGE_BORDER_COLOR,
       shadow: true,
+      rotation: 0,
+      flipHorizontal: false,
+      flipVertical: false,
     });
     setImageAltDraft(imageAltValue);
   };
@@ -1515,6 +1559,44 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
                           max={100}
                           step={5}
                         />
+                      </div>
+
+                      <div className='space-y-2'>
+                        <div className='flex items-center justify-between text-sm text-slate-600 dark:text-slate-300'>
+                          <span>Rotation</span>
+                          <span>{Math.round(imageRotation)}°</span>
+                        </div>
+                        <Slider
+                          value={[imageRotation]}
+                          onValueChange={(value) => handleImageRotationChange(value[0] ?? imageRotation)}
+                          min={0}
+                          max={360}
+                          step={1}
+                        />
+                      </div>
+
+                      <div className='space-y-2'>
+                        <span className='text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400'>Flip</span>
+                        <div className='flex flex-wrap gap-2'>
+                          <Button
+                            type='button'
+                            size='sm'
+                            variant={imageFlipHorizontal ? 'default' : 'outline'}
+                            className='gap-2 rounded-xl'
+                            onClick={handleImageFlipHorizontalToggle}
+                          >
+                            <FlipHorizontal className='h-4 w-4' /> {imageFlipHorizontal ? 'Unflip horizontal' : 'Flip horizontal'}
+                          </Button>
+                          <Button
+                            type='button'
+                            size='sm'
+                            variant={imageFlipVertical ? 'default' : 'outline'}
+                            className='gap-2 rounded-xl'
+                            onClick={handleImageFlipVerticalToggle}
+                          >
+                            <FlipVertical className='h-4 w-4' /> {imageFlipVertical ? 'Unflip vertical' : 'Flip vertical'}
+                          </Button>
+                        </div>
                       </div>
 
                       <div className='grid gap-3 sm:grid-cols-2'>
