@@ -13,6 +13,9 @@ export interface EnhancedImageAttributes {
   borderWidth: number;
   borderColor: string;
   shadow: boolean;
+  rotation: number;
+  flipHorizontal: boolean;
+  flipVertical: boolean;
 }
 
 export const DEFAULT_IMAGE_BORDER_COLOR = 'rgba(15, 23, 42, 0.12)';
@@ -119,11 +122,57 @@ export const EnhancedImage = Image.extend({
         parseHTML: (element) => element.getAttribute('data-shadow') !== 'false',
         renderHTML: (attributes) => ({ 'data-shadow': attributes.shadow ? 'true' : 'false' }),
       },
+      rotation: {
+        default: 0,
+        parseHTML: (element) => {
+          const rotationAttr = element.getAttribute('data-rotation');
+          if (rotationAttr) {
+            const numeric = Number.parseFloat(rotationAttr);
+            if (Number.isFinite(numeric)) {
+              const normalized = numeric % 360;
+              return normalized < 0 ? normalized + 360 : normalized;
+            }
+          }
+          return 0;
+        },
+        renderHTML: (attributes) => {
+          const value = attributes.rotation;
+          if (typeof value === 'number' && Number.isFinite(value)) {
+            let normalized = value % 360;
+            if (normalized < 0) {
+              normalized += 360;
+            }
+            return { 'data-rotation': normalized };
+          }
+          return { 'data-rotation': 0 };
+        },
+      },
+      flipHorizontal: {
+        default: false,
+        parseHTML: (element) => element.getAttribute('data-flip-horizontal') === 'true',
+        renderHTML: (attributes) => ({ 'data-flip-horizontal': attributes.flipHorizontal ? 'true' : 'false' }),
+      },
+      flipVertical: {
+        default: false,
+        parseHTML: (element) => element.getAttribute('data-flip-vertical') === 'true',
+        renderHTML: (attributes) => ({ 'data-flip-vertical': attributes.flipVertical ? 'true' : 'false' }),
+      },
     };
   },
 
   renderHTML({ HTMLAttributes }) {
-    const { widthPercent, alignment, borderRadius, borderWidth, borderColor, shadow, ...rest } = HTMLAttributes as Partial<
+    const {
+      widthPercent,
+      alignment,
+      borderRadius,
+      borderWidth,
+      borderColor,
+      shadow,
+      rotation,
+      flipHorizontal,
+      flipVertical,
+      ...rest
+    } = HTMLAttributes as Partial<
       EnhancedImageAttributes
     > & Record<string, unknown>;
 
@@ -155,6 +204,37 @@ export const EnhancedImage = Image.extend({
       styleFragments.push('box-shadow: none');
     }
 
+    const transformFragments: string[] = [];
+    const isFlipHorizontal = flipHorizontal === true;
+    const isFlipVertical = flipVertical === true;
+    let normalizedRotation = 0;
+
+    if (typeof rotation === 'number' && Number.isFinite(rotation)) {
+      normalizedRotation = rotation % 360;
+      if (normalizedRotation < 0) {
+        normalizedRotation += 360;
+      }
+      if (normalizedRotation !== 0) {
+        transformFragments.push(`rotate(${normalizedRotation}deg)`);
+      }
+    }
+
+    if (isFlipHorizontal) {
+      transformFragments.push('scaleX(-1)');
+    }
+
+    if (isFlipVertical) {
+      transformFragments.push('scaleY(-1)');
+    }
+
+    if (transformFragments.length > 0) {
+      styleFragments.push(`transform: ${transformFragments.join(' ')}`);
+    } else {
+      styleFragments.push('transform: none');
+    }
+
+    styleFragments.push('transform-origin: center center');
+
     const classList: string[] = [];
     if (typeof rest.class === 'string' && rest.class.length > 0) {
       classList.push(rest.class);
@@ -184,6 +264,9 @@ export const EnhancedImage = Image.extend({
         class: classList.join(' ').trim(),
         style: styleFragments.join('; '),
         'data-editor-image': 'true',
+        'data-rotation': normalizedRotation,
+        'data-flip-horizontal': isFlipHorizontal ? 'true' : 'false',
+        'data-flip-vertical': isFlipVertical ? 'true' : 'false',
       }),
     ];
   },

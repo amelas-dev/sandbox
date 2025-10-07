@@ -5,8 +5,12 @@ import {
   AlignCenter,
   AlignLeft,
   AlignRight,
+  FlipHorizontal,
+  FlipVertical,
   ImagePlus,
   RefreshCcw,
+  RotateCcw,
+  RotateCw,
   Sparkles,
   Square,
   StretchHorizontal,
@@ -42,6 +46,14 @@ const ALIGNMENT_OPTIONS: Array<{ label: string; value: ImageAlignment; icon: Rea
   { label: 'Right', value: 'right', icon: AlignRight },
   { label: 'Full width', value: 'full', icon: StretchHorizontal },
 ];
+
+const normalizeRotation = (value: number) => {
+  let normalized = value % 360;
+  if (normalized < 0) {
+    normalized += 360;
+  }
+  return normalized;
+};
 
 /**
  * Provides quick-access formatting for images via right-click in the editor canvas.
@@ -160,6 +172,10 @@ export function InlineImageControls({ editor, containerRef }: InlineImageControl
   }
 
   const { attrs } = menu;
+  const currentRotation =
+    typeof attrs.rotation === 'number' && Number.isFinite(attrs.rotation) ? normalizeRotation(attrs.rotation) : 0;
+  const isFlipHorizontal = !!attrs.flipHorizontal;
+  const isFlipVertical = !!attrs.flipVertical;
 
   const handleReplace = () => {
     const existing = attrs.src ?? '';
@@ -200,6 +216,19 @@ export function InlineImageControls({ editor, containerRef }: InlineImageControl
     updateAttributes({ widthPercent: value });
   };
 
+  const handleRotateDelta = (delta: number) => {
+    const next = normalizeRotation(currentRotation + delta);
+    updateAttributes({ rotation: next });
+  };
+
+  const handleFlipHorizontalToggle = () => {
+    updateAttributes({ flipHorizontal: !isFlipHorizontal });
+  };
+
+  const handleFlipVerticalToggle = () => {
+    updateAttributes({ flipVertical: !isFlipVertical });
+  };
+
   return (
     <div
       ref={menuRef}
@@ -238,6 +267,38 @@ export function InlineImageControls({ editor, containerRef }: InlineImageControl
           >
             <ImagePlus className='h-4 w-4' /> {attrs.borderRadius > 4 ? 'Square corners' : 'Rounded corners'}
           </button>
+          <button
+            type='button'
+            onClick={() => handleRotateDelta(-90)}
+            className='flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-left font-medium transition hover:border-brand-500 hover:text-brand-600 dark:border-slate-700 dark:hover:border-brand-400 dark:hover:text-brand-200'
+          >
+            <RotateCcw className='h-4 w-4' /> Rotate -90°
+          </button>
+          <button
+            type='button'
+            onClick={() => handleRotateDelta(90)}
+            className='flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-left font-medium transition hover:border-brand-500 hover:text-brand-600 dark:border-slate-700 dark:hover:border-brand-400 dark:hover:text-brand-200'
+          >
+            <RotateCw className='h-4 w-4' /> Rotate +90°
+          </button>
+          <button
+            type='button'
+            onClick={handleFlipHorizontalToggle}
+            className='flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-left font-medium transition hover:border-brand-500 hover:text-brand-600 dark:border-slate-700 dark:hover:border-brand-400 dark:hover:text-brand-200'
+          >
+            <FlipHorizontal className='h-4 w-4' /> {isFlipHorizontal ? 'Unflip horizontal' : 'Flip horizontal'}
+          </button>
+          <button
+            type='button'
+            onClick={handleFlipVerticalToggle}
+            className='flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-left font-medium transition hover:border-brand-500 hover:text-brand-600 dark:border-slate-700 dark:hover:border-brand-400 dark:hover:text-brand-200'
+          >
+            <FlipVertical className='h-4 w-4' /> {isFlipVertical ? 'Unflip vertical' : 'Flip vertical'}
+          </button>
+        </div>
+        <div className='flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400'>
+          <span>Rotation</span>
+          <span>{Math.round(currentRotation)}°</span>
         </div>
         <div>
           <p className='mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400'>Alignment</p>
@@ -294,6 +355,9 @@ export function InlineImageControls({ editor, containerRef }: InlineImageControl
                 borderWidth: 0,
                 borderColor: DEFAULT_IMAGE_BORDER_COLOR,
                 shadow: true,
+                rotation: 0,
+                flipHorizontal: false,
+                flipVertical: false,
               });
             }}
             className='text-xs font-semibold text-slate-500 underline-offset-2 transition hover:text-brand-600 hover:underline dark:text-slate-400 dark:hover:text-brand-300'
