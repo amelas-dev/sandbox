@@ -57,6 +57,17 @@ body {
   background-color: rgba(99, 102, 241, 0.65);
 }
 
+img[data-editor-image] {
+  max-width: 100%;
+  display: block;
+  transform-origin: center center;
+  backface-visibility: hidden;
+}
+
+img[data-editor-image].dm-image-inline {
+  display: inline-block;
+}
+
 * {
   @apply outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2;
 }

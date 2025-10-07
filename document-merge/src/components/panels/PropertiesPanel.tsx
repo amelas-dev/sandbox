@@ -8,6 +8,8 @@ import {
   AlignRight,
   BarChart2,
   ChevronDown,
+  FlipHorizontal,
+  FlipVertical,
   Image as ImageIcon,
   Minus,
   Palette,
@@ -20,7 +22,6 @@ import {
   Table as TableIcon,
   Trash2,
   Type as TypeIcon,
-  Upload,
 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -38,8 +39,7 @@ import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { ColorSwatchButton } from '@/components/ui/color-swatch-button';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/store/useAppStore';
 import type { DocumentStylePreset, PageBackgroundOption, ParagraphAlignment, TemplateTypography } from '@/lib/types';
@@ -53,6 +53,7 @@ import {
 import { applyTableSelection, type TableSelectionScope } from '@/lib/editor/tableSelection';
 import type { EnhancedImageAttributes, ImageAlignment } from '@/editor/extensions/enhanced-image';
 import { DEFAULT_IMAGE_BORDER_COLOR } from '@/editor/extensions/enhanced-image';
+import { ImageSourceForm } from '@/components/editor/ImageSourceForm';
 
 interface PropertiesPanelProps {
   editor: Editor | null;
@@ -675,8 +676,11 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
   const [imageUrlInput, setImageUrlInput] = React.useState('');
   const [imageInsertAlt, setImageInsertAlt] = React.useState('');
   const [imageUploadError, setImageUploadError] = React.useState<string | null>(null);
-  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const [imageAltDraft, setImageAltDraft] = React.useState('');
+  const [imageReplaceOpen, setImageReplaceOpen] = React.useState(false);
+  const [imageReplaceUrl, setImageReplaceUrl] = React.useState('');
+  const [imageReplaceAlt, setImageReplaceAlt] = React.useState('');
+  const [imageReplaceError, setImageReplaceError] = React.useState<string | null>(null);
 
   const tableActive = Boolean(editor?.isActive('table'));
   const tableAttributes: Partial<PremiumTableAttributes> = tableActive
@@ -717,6 +721,16 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
       ? imageAttributes.borderColor
       : DEFAULT_IMAGE_BORDER_COLOR;
   const imageShadow = imageAttributes.shadow ?? true;
+  const imageRotation = (() => {
+    const raw = imageAttributes.rotation;
+    if (typeof raw === 'number' && Number.isFinite(raw)) {
+      const normalized = raw % 360;
+      return normalized < 0 ? normalized + 360 : normalized;
+    }
+    return 0;
+  })();
+  const imageFlipHorizontal = imageAttributes.flipHorizontal ?? false;
+  const imageFlipVertical = imageAttributes.flipVertical ?? false;
   const imageAltValue = typeof imageAttributes.alt === 'string' ? imageAttributes.alt : '';
   const imageSrcValue = typeof imageAttributes.src === 'string' ? imageAttributes.src : '';
 
@@ -803,16 +817,12 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
     updateTableAttributes({ tableWidth: normalized });
   };
 
-  const handleImageInsert = () => {
+  const handleImageInsert = ({ src, alt }: { src: string; alt: string }) => {
     if (!editor) {
       return;
     }
-    const src = imageUrlInput.trim();
-    if (!src) {
-      return;
-    }
-    const alt = imageInsertAlt.trim();
-    const chain = editor.chain().focus().setImage({ src, alt: alt.length > 0 ? alt : null });
+    const trimmedAlt = alt.trim();
+    const chain = editor.chain().focus().setImage({ src, alt: trimmedAlt.length > 0 ? trimmedAlt : null });
     chain.updateAttributes('image', {
       widthPercent: 60,
       alignment: 'inline',
@@ -820,31 +830,15 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
       borderWidth: 0,
       borderColor: DEFAULT_IMAGE_BORDER_COLOR,
       shadow: true,
+      rotation: 0,
+      flipHorizontal: false,
+      flipVertical: false,
     });
     chain.run();
     setComponentType('image');
     setImageUrlInput('');
     setImageInsertAlt('');
     setImageUploadError(null);
-  };
-
-  const handleImageUpload: React.ChangeEventHandler<HTMLInputElement> = (event) => {
-    const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      setImageUploadError('File is larger than 5 MB. Choose a smaller image.');
-      event.target.value = '';
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setImageUploadError(null);
-      setImageUrlInput(typeof reader.result === 'string' ? reader.result : '');
-    };
-    reader.readAsDataURL(file);
-    event.target.value = '';
   };
 
   const handleImageAlignmentChange = (value: string) => {
@@ -892,6 +886,32 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
     updateImageAttributes({ shadow: !imageShadow });
   };
 
+  const handleImageRotationChange = (value: number) => {
+    if (!editor || !imageActive) {
+      return;
+    }
+    const numeric = Number.isFinite(value) ? value : imageRotation;
+    let normalized = numeric % 360;
+    if (normalized < 0) {
+      normalized += 360;
+    }
+    updateImageAttributes({ rotation: normalized });
+  };
+
+  const handleImageFlipHorizontalToggle = () => {
+    if (!editor || !imageActive) {
+      return;
+    }
+    updateImageAttributes({ flipHorizontal: !imageFlipHorizontal });
+  };
+
+  const handleImageFlipVerticalToggle = () => {
+    if (!editor || !imageActive) {
+      return;
+    }
+    updateImageAttributes({ flipVertical: !imageFlipVertical });
+  };
+
   const handleImageAltDraftChange = (value: string) => {
     setImageAltDraft(value);
     if (!editor || !imageActive) {
@@ -905,11 +925,28 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
     if (!editor || !imageActive) {
       return;
     }
-    const next = window.prompt('Paste image URL or data URI', imageSrcValue);
-    if (!next || next.trim().length === 0) {
+    setImageReplaceUrl(imageSrcValue ?? '');
+    setImageReplaceAlt(imageAltValue);
+    setImageReplaceError(null);
+    setImageReplaceOpen(true);
+  };
+
+  const handleImageReplaceSubmit = ({ src, alt }: { src: string; alt: string }) => {
+    if (!editor || !imageActive) {
       return;
     }
-    updateImageAttributes({ src: next.trim() });
+    const trimmedAlt = alt.trim();
+    updateImageAttributes({ src, alt: trimmedAlt.length > 0 ? trimmedAlt : null });
+    setImageAltDraft(trimmedAlt.length > 0 ? trimmedAlt : '');
+    handleImageReplaceOpenChange(false);
+  };
+
+  const handleImageReplaceOpenChange = (open: boolean) => {
+    setImageReplaceOpen(open);
+    if (!open) {
+      setImageReplaceError(null);
+      editor?.view?.focus();
+    }
   };
 
   const handleImageReset = () => {
@@ -923,6 +960,9 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
       borderWidth: 0,
       borderColor: DEFAULT_IMAGE_BORDER_COLOR,
       shadow: true,
+      rotation: 0,
+      flipHorizontal: false,
+      flipVertical: false,
     });
     setImageAltDraft(imageAltValue);
   };
@@ -1422,6 +1462,40 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
                   </DropdownMenu>
                 </section>
 
+                <Dialog open={imageReplaceOpen} onOpenChange={handleImageReplaceOpenChange}>
+                  <DialogContent className='max-w-lg'>
+                    <DialogHeader>
+                      <DialogTitle>Update image</DialogTitle>
+                      <DialogDescription>
+                        Swap the image source or alt text without leaving the editor canvas.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className='mt-6'>
+                      <ImageSourceForm
+                        src={imageReplaceUrl}
+                        alt={imageReplaceAlt}
+                        error={imageReplaceError}
+                        onSrcChange={setImageReplaceUrl}
+                        onAltChange={setImageReplaceAlt}
+                        onErrorChange={setImageReplaceError}
+                        onSubmit={handleImageReplaceSubmit}
+                        submitLabel='Update image'
+                        secondaryActions={
+                          <Button
+                            type='button'
+                            variant='ghost'
+                            size='sm'
+                            className='rounded-xl'
+                            onClick={() => handleImageReplaceOpenChange(false)}
+                          >
+                            Cancel
+                          </Button>
+                        }
+                      />
+                    </div>
+                  </DialogContent>
+                </Dialog>
+
                 <section className='space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900'>
                   <span className='text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400'>Table styling</span>
                   <div className='space-y-2'>
@@ -1565,56 +1639,33 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
               <>
                 <section className='space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900'>
                   <span className='text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400'>Insert image</span>
-                  <div className='space-y-2'>
-                    <Label className='text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400'>Image source</Label>
-                    <Input
-                      value={imageUrlInput}
-                      onChange={(event) => setImageUrlInput(event.target.value)}
-                      placeholder='https://example.com/visual.png or data URI'
-                      className='h-9 rounded-xl border-slate-200 text-sm dark:border-slate-700'
-                    />
-                  </div>
-                  <div className='space-y-2'>
-                    <Label className='text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400'>Alt text</Label>
-                    <Input
-                      value={imageInsertAlt}
-                      onChange={(event) => setImageInsertAlt(event.target.value)}
-                      placeholder='Describe the image for accessibility'
-                      className='h-9 rounded-xl border-slate-200 text-sm dark:border-slate-700'
-                    />
-                  </div>
-                  <div className='flex flex-wrap items-center gap-2'>
-                    <input ref={fileInputRef} type='file' accept='image/*' onChange={handleImageUpload} className='hidden' />
-                    <Button type='button' size='sm' variant='outline' className='gap-2 rounded-xl' onClick={() => fileInputRef.current?.click()}>
-                      <Upload className='h-4 w-4' /> Upload
-                    </Button>
-                    <Button
-                      type='button'
-                      size='sm'
-                      className='rounded-xl'
-                      onClick={handleImageInsert}
-                      disabled={!editor || imageUrlInput.trim().length === 0}
-                    >
-                      Insert image
-                    </Button>
-                    <Button
-                      type='button'
-                      variant='ghost'
-                      size='sm'
-                      className='rounded-xl'
-                      onClick={() => {
-                        setImageUrlInput('');
-                        setImageInsertAlt('');
-                        setImageUploadError(null);
-                      }}
-                    >
-                      Clear
-                    </Button>
-                  </div>
-                  {imageUploadError ? (
-                    <p className='text-xs font-medium text-red-500 dark:text-red-400'>{imageUploadError}</p>
-                  ) : null}
-                  <p className='text-xs text-slate-500 dark:text-slate-400'>Paste a web URL or upload a file up to 5 MB. Images insert at 60% width by default.</p>
+                  <ImageSourceForm
+                    src={imageUrlInput}
+                    alt={imageInsertAlt}
+                    error={imageUploadError}
+                    onSrcChange={(value) => {
+                      setImageUrlInput(value);
+                    }}
+                    onAltChange={setImageInsertAlt}
+                    onErrorChange={setImageUploadError}
+                    onSubmit={handleImageInsert}
+                    submitLabel='Insert image'
+                    secondaryActions={
+                      <Button
+                        type='button'
+                        variant='ghost'
+                        size='sm'
+                        className='rounded-xl'
+                        onClick={() => {
+                          setImageUrlInput('');
+                          setImageInsertAlt('');
+                          setImageUploadError(null);
+                        }}
+                      >
+                        Clear
+                      </Button>
+                    }
+                  />
                 </section>
 
                 <section className='space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900'>
@@ -1680,6 +1731,44 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
                           max={100}
                           step={5}
                         />
+                      </div>
+
+                      <div className='space-y-2'>
+                        <div className='flex items-center justify-between text-sm text-slate-600 dark:text-slate-300'>
+                          <span>Rotation</span>
+                          <span>{Math.round(imageRotation)}°</span>
+                        </div>
+                        <Slider
+                          value={[imageRotation]}
+                          onValueChange={(value) => handleImageRotationChange(value[0] ?? imageRotation)}
+                          min={0}
+                          max={360}
+                          step={1}
+                        />
+                      </div>
+
+                      <div className='space-y-2'>
+                        <span className='text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400'>Flip</span>
+                        <div className='flex flex-wrap gap-2'>
+                          <Button
+                            type='button'
+                            size='sm'
+                            variant={imageFlipHorizontal ? 'default' : 'outline'}
+                            className='gap-2 rounded-xl'
+                            onClick={handleImageFlipHorizontalToggle}
+                          >
+                            <FlipHorizontal className='h-4 w-4' /> {imageFlipHorizontal ? 'Unflip horizontal' : 'Flip horizontal'}
+                          </Button>
+                          <Button
+                            type='button'
+                            size='sm'
+                            variant={imageFlipVertical ? 'default' : 'outline'}
+                            className='gap-2 rounded-xl'
+                            onClick={handleImageFlipVerticalToggle}
+                          >
+                            <FlipVertical className='h-4 w-4' /> {imageFlipVertical ? 'Unflip vertical' : 'Flip vertical'}
+                          </Button>
+                        </div>
                       </div>
 
                       <div className='grid gap-3 sm:grid-cols-2'>
