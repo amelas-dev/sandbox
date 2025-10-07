@@ -40,6 +40,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/store/useAppStore';
 import type { DocumentStylePreset, PageBackgroundOption, ParagraphAlignment, TemplateTypography } from '@/lib/types';
@@ -70,6 +71,13 @@ interface FontFamilyDropdownProps {
   disabled?: boolean;
 }
 
+interface ImageBorderColorPickerProps {
+  value: string;
+  onChange: (color: string) => void;
+  disabled?: boolean;
+  className?: string;
+}
+
 const LAYOUT_MARGIN_FIELDS: Array<{ label: string; key: 'top' | 'right' | 'bottom' | 'left' }> = [
   { label: 'Top', key: 'top' },
   { label: 'Right', key: 'right' },
@@ -91,7 +99,79 @@ const STYLE_COLOR_PALETTE = [
   '#f59e0b',
 ];
 
+function normalizeColorString(color: string): string {
+  return color.replace(/\s+/g, '').toLowerCase();
+}
+
+function normalizeHex(input: string): string | null {
+  const trimmed = input.trim();
+  if (!trimmed) {
+    return null;
+  }
+  const match = trimmed.match(/^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
+  if (!match) {
+    return null;
+  }
+  let hex = match[1];
+  if (hex.length === 3) {
+    hex = hex
+      .split('')
+      .map((char) => char + char)
+      .join('');
+  }
+  return `#${hex.toLowerCase()}`;
+}
+
+function hexToRgba(hex: string, alpha: number): string {
+  const normalized = normalizeHex(hex);
+  const safeHex = normalized ? normalized.slice(1) : '000000';
+  const expanded = safeHex.length === 3 ? safeHex.repeat(2) : safeHex;
+  const r = Number.parseInt(expanded.slice(0, 2), 16);
+  const g = Number.parseInt(expanded.slice(2, 4), 16);
+  const b = Number.parseInt(expanded.slice(4, 6), 16);
+  const clampedAlpha = Math.round(Math.min(Math.max(alpha, 0), 1) * 100) / 100;
+  return `rgba(${r}, ${g}, ${b}, ${clampedAlpha})`;
+}
+
+function parseColor(input: string | null | undefined): { hex: string; alpha: number } | null {
+  if (!input) {
+    return null;
+  }
+  const trimmed = input.trim();
+  if (!trimmed) {
+    return null;
+  }
+  const hex = normalizeHex(trimmed);
+  if (hex) {
+    return { hex, alpha: 1 };
+  }
+  const rgbaMatch = trimmed.match(
+    /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})(?:\s*,\s*(\d*\.?\d+))?\s*\)$/i,
+  );
+  if (!rgbaMatch) {
+    return null;
+  }
+  const clampChannel = (value: number) => Math.max(0, Math.min(255, value));
+  const [r, g, b] = [rgbaMatch[1], rgbaMatch[2], rgbaMatch[3]].map((component) =>
+    clampChannel(Number.parseInt(component, 10)),
+  );
+  const alphaRaw = rgbaMatch[4];
+  const alphaValue = alphaRaw && alphaRaw.length > 0 ? Number.parseFloat(alphaRaw) : 1;
+  const alpha = Number.isFinite(alphaValue) ? Math.max(0, Math.min(1, alphaValue)) : 1;
+  const hexFromRgba = `#${[r, g, b]
+    .map((channel) => channel.toString(16).padStart(2, '0'))
+    .join('')}`;
+  return { hex: hexFromRgba, alpha };
+}
+
 const IMAGE_BORDER_COLORS = Array.from(new Set([DEFAULT_IMAGE_BORDER_COLOR, ...STYLE_COLOR_PALETTE]));
+const PRESET_IMAGE_BORDER_COLOR_SET = new Set(IMAGE_BORDER_COLORS.map((color) => normalizeColorString(color)));
+
+const DEFAULT_BORDER_COLOR_STATE = (() =>
+  parseColor(DEFAULT_IMAGE_BORDER_COLOR) ?? {
+    hex: '#0f172a',
+    alpha: 0.12,
+  })();
 
 const BACKGROUND_OPTIONS: Array<{ value: PageBackgroundOption; label: string }> = [
   { value: 'white', label: 'White' },
@@ -242,6 +322,186 @@ function FontFamilyDropdown({ label, value, placeholder, onSelectPreset, onCusto
         </div>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+function ImageBorderColorPicker({ value, onChange, disabled, className }: ImageBorderColorPickerProps) {
+  const [popoverOpen, setPopoverOpen] = React.useState(false);
+  const normalizedValue = React.useMemo(() => normalizeColorString(value ?? ''), [value]);
+  const activeCustomColor = React.useMemo(
+    () => (value && !PRESET_IMAGE_BORDER_COLOR_SET.has(normalizedValue) ? value : null),
+    [normalizedValue, value],
+  );
+
+  const parsedValue = React.useMemo(
+    () => parseColor(value) ?? DEFAULT_BORDER_COLOR_STATE,
+    [value],
+  );
+
+  const [customHex, setCustomHex] = React.useState(parsedValue.hex);
+  const [customAlpha, setCustomAlpha] = React.useState(parsedValue.alpha);
+  const [hexInput, setHexInput] = React.useState(parsedValue.hex);
+
+  React.useEffect(() => {
+    setCustomHex(parsedValue.hex);
+    setCustomAlpha(parsedValue.alpha);
+    setHexInput(parsedValue.hex);
+  }, [parsedValue.alpha, parsedValue.hex]);
+
+  React.useEffect(() => {
+    if (popoverOpen) {
+      setHexInput(parsedValue.hex);
+    }
+  }, [parsedValue.hex, popoverOpen]);
+
+  const previewColor = value || hexToRgba(customHex, customAlpha);
+  const alphaPercentage = Math.round(customAlpha * 100);
+
+  const handlePresetSelect = React.useCallback(
+    (color: string) => {
+      if (disabled) {
+        return;
+      }
+      onChange(color);
+    },
+    [disabled, onChange],
+  );
+
+  const commitCustomHex = React.useCallback(
+    (inputValue: string) => {
+      const normalizedHex = normalizeHex(inputValue);
+      if (!normalizedHex) {
+        setHexInput((current) => (current && current !== customHex ? customHex : current));
+        return;
+      }
+      setCustomHex(normalizedHex);
+      setHexInput(normalizedHex);
+      onChange(hexToRgba(normalizedHex, customAlpha));
+    },
+    [customAlpha, customHex, onChange],
+  );
+
+  const handleHexInputBlur = React.useCallback(() => {
+    commitCustomHex(hexInput);
+  }, [commitCustomHex, hexInput]);
+
+  const handleHexInputKeyDown = React.useCallback(
+    (event: React.KeyboardEvent<HTMLInputElement>) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        commitCustomHex(hexInput);
+      }
+    },
+    [commitCustomHex, hexInput],
+  );
+
+  const handleColorPickerChange = React.useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const next = event.target.value;
+      setHexInput(next);
+      commitCustomHex(next);
+    },
+    [commitCustomHex],
+  );
+
+  const handleAlphaChange = React.useCallback(
+    (values: number[]) => {
+      const raw = values[0];
+      if (typeof raw !== 'number' || Number.isNaN(raw)) {
+        return;
+      }
+      const nextAlpha = Math.max(0, Math.min(1, raw / 100));
+      setCustomAlpha(nextAlpha);
+      onChange(hexToRgba(customHex, nextAlpha));
+    },
+    [customHex, onChange],
+  );
+
+  return (
+    <div className={cn('flex flex-wrap items-center gap-2', className)}>
+      {IMAGE_BORDER_COLORS.map((color) => {
+        const normalizedColor = normalizeColorString(color);
+        const isActive = normalizedColor === normalizedValue;
+        return (
+          <button
+            key={color}
+            type='button'
+            disabled={disabled}
+            onClick={() => handlePresetSelect(color)}
+            className={cn(
+              'relative h-8 w-8 rounded-full border border-slate-200 shadow-sm transition focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700',
+              isActive
+                ? 'ring-2 ring-brand-500 ring-offset-2'
+                : 'hover:ring-2 hover:ring-slate-300 hover:ring-offset-2 dark:hover:ring-slate-600',
+            )}
+            style={{ backgroundColor: color }}
+          >
+            <span className='sr-only'>Apply border color {color}</span>
+          </button>
+        );
+      })}
+      {activeCustomColor ? (
+        <button
+          type='button'
+          disabled={disabled}
+          onClick={() => handlePresetSelect(activeCustomColor)}
+          className={cn(
+            'relative h-8 w-8 rounded-full border border-slate-200 shadow-sm ring-2 ring-brand-500 ring-offset-2 transition focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700',
+          )}
+          style={{ backgroundColor: activeCustomColor }}
+        >
+          <span className='sr-only'>Apply custom border color {activeCustomColor}</span>
+        </button>
+      ) : null}
+      <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
+        <PopoverTrigger asChild>
+          <button
+            type='button'
+            disabled={disabled}
+            className={cn(
+              'relative flex h-8 w-8 items-center justify-center rounded-full border border-dashed border-slate-300 text-slate-500 transition hover:border-slate-400 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:text-slate-300 dark:hover:border-slate-500',
+            )}
+          >
+            <span className='sr-only'>Open custom color picker</span>
+            <span
+              className='absolute inset-[3px] rounded-full border border-white/60 shadow-sm dark:border-slate-900/60'
+              style={{ backgroundColor: previewColor }}
+            />
+            <Palette className='relative h-4 w-4' />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent className='w-56 space-y-3' align='start'>
+          <div className='space-y-2'>
+            <span className='text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400'>
+              Custom color
+            </span>
+            <div className='flex items-center gap-2'>
+              <input
+                type='color'
+                value={hexInput.startsWith('#') ? hexInput : customHex}
+                onChange={handleColorPickerChange}
+                className='h-9 w-9 cursor-pointer rounded-lg border border-slate-200 bg-transparent p-1 dark:border-slate-700'
+              />
+              <Input
+                value={hexInput}
+                onChange={(event) => setHexInput(event.target.value)}
+                onBlur={handleHexInputBlur}
+                onKeyDown={handleHexInputKeyDown}
+                placeholder='#000000'
+                className='h-9 flex-1 rounded-lg border-slate-200 text-sm dark:border-slate-700'
+              />
+            </div>
+          </div>
+          <div className='space-y-2'>
+            <div className='flex items-center justify-between text-xs font-medium text-slate-500 dark:text-slate-400'>
+              <span>Opacity</span>
+              <span>{alphaPercentage}%</span>
+            </div>
+            <Slider value={[alphaPercentage]} onValueChange={handleAlphaChange} min={0} max={100} step={1} />
+          </div>
+        </PopoverContent>
+      </Popover>
+    </div>
   );
 }
 
@@ -1631,22 +1891,10 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
                       <div className='space-y-2'>
                         <span className='text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400'>Border color</span>
                         <div className='flex flex-wrap items-center gap-2'>
-                          {IMAGE_BORDER_COLORS.map((color) => (
-                            <button
-                              key={color}
-                              type='button'
-                              onClick={() => handleImageBorderColorChange(color)}
-                              className={cn(
-                                'h-8 w-8 rounded-full border border-slate-200 shadow-sm transition focus-visible:ring-2 focus-visible:ring-offset-2 dark:border-slate-700',
-                                imageBorderColor.toLowerCase() === color.toLowerCase()
-                                  ? 'ring-2 ring-brand-500 ring-offset-2'
-                                  : 'hover:ring-2 hover:ring-slate-300 hover:ring-offset-2',
-                              )}
-                              style={{ backgroundColor: color }}
-                            >
-                              <span className='sr-only'>Apply border color {color}</span>
-                            </button>
-                          ))}
+                          <ImageBorderColorPicker
+                            value={imageBorderColor}
+                            onChange={handleImageBorderColorChange}
+                          />
                           <Button
                             type='button'
                             variant='ghost'
