@@ -40,6 +40,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/store/useAppStore';
 import type { DocumentStylePreset, PageBackgroundOption, ParagraphAlignment, TemplateTypography } from '@/lib/types';
@@ -70,6 +71,13 @@ interface FontFamilyDropdownProps {
   disabled?: boolean;
 }
 
+interface ImageBorderColorPickerProps {
+  value: string;
+  onChange: (color: string) => void;
+  disabled?: boolean;
+  className?: string;
+}
+
 const LAYOUT_MARGIN_FIELDS: Array<{ label: string; key: 'top' | 'right' | 'bottom' | 'left' }> = [
   { label: 'Top', key: 'top' },
   { label: 'Right', key: 'right' },
@@ -91,7 +99,79 @@ const STYLE_COLOR_PALETTE = [
   '#f59e0b',
 ];
 
+function normalizeColorString(color: string): string {
+  return color.replace(/\s+/g, '').toLowerCase();
+}
+
+function normalizeHex(input: string): string | null {
+  const trimmed = input.trim();
+  if (!trimmed) {
+    return null;
+  }
+  const match = trimmed.match(/^#?([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/);
+  if (!match) {
+    return null;
+  }
+  let hex = match[1];
+  if (hex.length === 3) {
+    hex = hex
+      .split('')
+      .map((char) => char + char)
+      .join('');
+  }
+  return `#${hex.toLowerCase()}`;
+}
+
+function hexToRgba(hex: string, alpha: number): string {
+  const normalized = normalizeHex(hex);
+  const safeHex = normalized ? normalized.slice(1) : '000000';
+  const expanded = safeHex.length === 3 ? safeHex.repeat(2) : safeHex;
+  const r = Number.parseInt(expanded.slice(0, 2), 16);
+  const g = Number.parseInt(expanded.slice(2, 4), 16);
+  const b = Number.parseInt(expanded.slice(4, 6), 16);
+  const clampedAlpha = Math.round(Math.min(Math.max(alpha, 0), 1) * 100) / 100;
+  return `rgba(${r}, ${g}, ${b}, ${clampedAlpha})`;
+}
+
+function parseColor(input: string | null | undefined): { hex: string; alpha: number } | null {
+  if (!input) {
+    return null;
+  }
+  const trimmed = input.trim();
+  if (!trimmed) {
+    return null;
+  }
+  const hex = normalizeHex(trimmed);
+  if (hex) {
+    return { hex, alpha: 1 };
+  }
+  const rgbaMatch = trimmed.match(
+    /^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})(?:\s*,\s*(\d*\.?\d+))?\s*\)$/i,
+  );
+  if (!rgbaMatch) {
+    return null;
+  }
+  const clampChannel = (value: number) => Math.max(0, Math.min(255, value));
+  const [r, g, b] = [rgbaMatch[1], rgbaMatch[2], rgbaMatch[3]].map((component) =>
+    clampChannel(Number.parseInt(component, 10)),
+  );
+  const alphaRaw = rgbaMatch[4];
+  const alphaValue = alphaRaw && alphaRaw.length > 0 ? Number.parseFloat(alphaRaw) : 1;
+  const alpha = Number.isFinite(alphaValue) ? Math.max(0, Math.min(1, alphaValue)) : 1;
+  const hexFromRgba = `#${[r, g, b]
+    .map((channel) => channel.toString(16).padStart(2, '0'))
+    .join('')}`;
+  return { hex: hexFromRgba, alpha };
+}
+
 const IMAGE_BORDER_COLORS = Array.from(new Set([DEFAULT_IMAGE_BORDER_COLOR, ...STYLE_COLOR_PALETTE]));
+const PRESET_IMAGE_BORDER_COLOR_SET = new Set(IMAGE_BORDER_COLORS.map((color) => normalizeColorString(color)));
+
+const DEFAULT_BORDER_COLOR_STATE = (() =>
+  parseColor(DEFAULT_IMAGE_BORDER_COLOR) ?? {
+    hex: '#0f172a',
+    alpha: 0.12,
+  })();
 
 const HEX_COLOR_PATTERN = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
 
