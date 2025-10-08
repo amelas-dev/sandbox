@@ -29,6 +29,7 @@ import { cn } from '@/lib/utils';
 import { ensureGoogleFontsLoaded } from '@/lib/google-font-loader';
 import { getDocumentBaseStyles, getPageDimensions, getPagePadding } from '@/lib/template-style';
 import type { PageBackgroundOption } from '@/lib/types';
+import { NodeSelection } from '@tiptap/pm/state';
 
 function extractPrimaryFamily(fontStack: string): string {
   if (!fontStack) {
@@ -119,6 +120,38 @@ export function DocumentDesigner({ className, onEditorReady }: DocumentDesignerP
               return true;
             }
             return false;
+          },
+          click: (view, event) => {
+            const target = event.target as HTMLElement | null;
+            if (!target) {
+              return false;
+            }
+
+            const image = target.closest('img[data-editor-image]');
+            if (!image) {
+              return false;
+            }
+
+            event.preventDefault();
+
+            let pos: number | null = null;
+            try {
+              pos = view.posAtDOM(image, 0);
+            } catch (error) {
+              console.error('Failed to resolve image position for selection', error);
+              pos = null;
+            }
+
+            if (pos === null) {
+              return false;
+            }
+
+            const { state } = view;
+            const transaction = state.tr.setSelection(NodeSelection.create(state.doc, pos));
+            view.dispatch(transaction);
+            view.focus();
+
+            return true;
           },
         },
       },
