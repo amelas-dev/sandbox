@@ -889,7 +889,7 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
       editor
         .chain()
         .focus()
-        .command(({ state, tr }) => {
+        .command(({ state, tr, dispatch }) => {
           const node = state.doc.nodeAt(pos);
           if (!node || node.type.name !== 'image') {
             return false;
@@ -898,6 +898,9 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
           const attrs = { ...node.attrs, ...next };
           tr.setSelection(NodeSelection.create(state.doc, pos));
           tr.setNodeMarkup(pos, undefined, attrs);
+          if (dispatch) {
+            dispatch(tr);
+          }
           return true;
         })
         .run();
