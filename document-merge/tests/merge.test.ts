@@ -96,6 +96,98 @@ describe('pruneTemplateContent', () => {
   });
 });
 
+describe('expandTemplateToHtml', () => {
+  const baseTemplate: TemplateDoc = {
+    content: {
+      type: 'doc',
+      content: [
+        { type: 'paragraph', content: [{ type: 'text', text: 'Line 1' }] },
+        {
+          type: 'paragraph',
+          content: [
+            { type: 'text', text: 'Optional: ' },
+            { type: 'mergeTag', attrs: { fieldKey: 'AddressLine2', suppressIfEmpty: true } },
+          ],
+        },
+        {
+          type: 'table',
+          content: [
+            {
+              type: 'tableRow',
+              content: [
+                { type: 'tableHeader', content: [{ type: 'text', text: 'Item' }] },
+                { type: 'tableHeader', content: [{ type: 'text', text: 'Value' }] },
+              ],
+            },
+            {
+              type: 'tableRow',
+              attrs: { suppressIfEmpty: true },
+              content: [
+                { type: 'tableCell', content: [{ type: 'mergeTag', attrs: { fieldKey: 'ItemName', suppressIfEmpty: true } }] },
+                { type: 'tableCell', content: [{ type: 'mergeTag', attrs: { fieldKey: 'ItemValue', suppressIfEmpty: true } }] },
+              ],
+            },
+          ],
+        },
+        { type: 'paragraph', content: [{ type: 'text', text: 'Line 3' }] },
+      ],
+    } satisfies JSONContent,
+    page: {
+      size: 'Letter',
+      orientation: 'portrait',
+      margins: { top: 72, right: 72, bottom: 72, left: 72 },
+    },
+    appearance: {
+      background: 'white',
+      dropShadow: false,
+      pageBorder: false,
+      stylePreset: 'professional',
+    },
+    styles: {
+      fontFamily: 'Inter',
+      baseFontSize: 12,
+      theme: 'light',
+      textColor: '#111827',
+      headingFontFamily: 'Inter',
+      headingWeight: '700',
+      headingColor: '#111827',
+      headingTransform: 'none',
+      textTransform: 'none',
+      paragraphAlign: 'left',
+      lineHeight: 1.5,
+      paragraphSpacing: 1,
+      letterSpacing: 0,
+      bulletStyle: 'disc',
+      numberedStyle: 'decimal',
+      linkColor: '#2563eb',
+      highlightColor: '#fef3c7',
+    },
+  };
+
+  it('omits suppressed nodes when generating HTML for export', async () => {
+    const emptyRecord = { AddressLine2: '', ItemName: '', ItemValue: '' } as Record<string, unknown>;
+    const result = await expandTemplateToHtml(baseTemplate, emptyRecord);
+
+    expect(result).toContain('<p>Line 1</p>');
+    expect(result).toContain('<p>Line 3</p>');
+    expect(result).not.toContain('Optional:');
+    expect(result).not.toContain('<p></p>');
+    expect(result).not.toMatch(/<tr>\s*<\/tr>/);
+
+    const populatedRecord = {
+      AddressLine2: 'Suite 200',
+      ItemName: 'Renewal',
+      ItemValue: '$250',
+    } as Record<string, unknown>;
+    const populatedResult = await expandTemplateToHtml(baseTemplate, populatedRecord);
+
+    expect(populatedResult).toContain('Optional: ');
+    expect(populatedResult).toContain('Suite 200');
+    expect(populatedResult).toMatch(/>Renewal<\/span>/);
+    expect(populatedResult).toMatch(/>\$250<\/span>/);
+  });
+});
+
 describe('renderFilename', () => {
   it('substitutes merge tags and sanitizes invalid filename characters', () => {
     const record = {
