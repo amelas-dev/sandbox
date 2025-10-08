@@ -22,7 +22,11 @@ import type { EnhancedImageAttributes, ImageAlignment } from '@/editor/extension
 import { DEFAULT_IMAGE_BORDER_COLOR } from '@/editor/extensions/enhanced-image';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ImageSourceForm } from '@/components/editor/ImageSourceForm';
+import {
+  ImageSourceForm,
+  type ImageSourceSubmitValue,
+  type ImageSourceValue,
+} from '@/components/editor/ImageSourceForm';
 
 interface ImageContextMenuState {
   x: number;
@@ -65,10 +69,10 @@ export function InlineImageControls({ editor, containerRef }: InlineImageControl
   const [menu, setMenu] = React.useState<ImageContextMenuState | null>(null);
   const menuRef = React.useRef<HTMLDivElement | null>(null);
   const [imageEditorOpen, setImageEditorOpen] = React.useState(false);
-  const [imageEditorSrc, setImageEditorSrc] = React.useState('');
+  const [imageEditorSource, setImageEditorSource] = React.useState<ImageSourceValue | null>(null);
   const [imageEditorAlt, setImageEditorAlt] = React.useState('');
   const [imageEditorError, setImageEditorError] = React.useState<string | null>(null);
-  const [imageEditorInitialFocus, setImageEditorInitialFocus] = React.useState<'src' | 'alt'>('src');
+  const [imageEditorInitialFocus, setImageEditorInitialFocus] = React.useState<'file' | 'alt'>('file');
 
   const closeMenu = React.useCallback(() => setMenu(null), []);
 
@@ -84,14 +88,15 @@ export function InlineImageControls({ editor, containerRef }: InlineImageControl
       setImageEditorOpen(open);
       if (!open) {
         setImageEditorError(null);
+        setImageEditorSource(null);
         editor.view.focus();
       }
     },
     [editor],
   );
 
-  const openImageEditor = React.useCallback((attrs: EnhancedImageAttributes, focus: 'src' | 'alt') => {
-    setImageEditorSrc(attrs.src ?? '');
+  const openImageEditor = React.useCallback((attrs: EnhancedImageAttributes, focus: 'file' | 'alt') => {
+    setImageEditorSource(attrs.src ? { file: null, src: attrs.src } : null);
     setImageEditorAlt(attrs.alt ?? '');
     setImageEditorError(null);
     setImageEditorInitialFocus(focus);
@@ -99,7 +104,7 @@ export function InlineImageControls({ editor, containerRef }: InlineImageControl
   }, []);
 
   const handleImageEditorSubmit = React.useCallback(
-    ({ src, alt }: { src: string; alt: string }) => {
+    ({ src, alt }: ImageSourceSubmitValue) => {
       const trimmedAlt = alt.trim();
       updateAttributes({ src, alt: trimmedAlt.length > 0 ? trimmedAlt : null });
       handleImageEditorOpenChange(false);
@@ -209,7 +214,7 @@ export function InlineImageControls({ editor, containerRef }: InlineImageControl
     const { attrs } = menu;
 
     const handleReplace = () => {
-      openImageEditor(attrs, 'src');
+      openImageEditor(attrs, 'file');
       closeMenu();
     };
 
@@ -369,16 +374,15 @@ export function InlineImageControls({ editor, containerRef }: InlineImageControl
           </DialogHeader>
           <div className='mt-6'>
             <ImageSourceForm
-              src={imageEditorSrc}
+              source={imageEditorSource}
               alt={imageEditorAlt}
               error={imageEditorError}
-              onSrcChange={setImageEditorSrc}
+              onSourceChange={setImageEditorSource}
               onAltChange={setImageEditorAlt}
               onErrorChange={setImageEditorError}
               onSubmit={handleImageEditorSubmit}
               submitLabel='Update image'
               initialFocus={imageEditorInitialFocus}
-              description='Paste a web URL or upload a file up to 5 MB.'
               secondaryActions={
                 <Button
                   type='button'
