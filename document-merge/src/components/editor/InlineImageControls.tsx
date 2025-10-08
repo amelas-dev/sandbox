@@ -5,12 +5,8 @@ import {
   AlignCenter,
   AlignLeft,
   AlignRight,
-  FlipHorizontal,
-  FlipVertical,
   ImagePlus,
   RefreshCcw,
-  RotateCcw,
-  RotateCw,
   Sparkles,
   Square,
   StretchHorizontal,
@@ -40,6 +36,12 @@ interface InlineImageControlsProps {
   containerRef: React.RefObject<HTMLElement>;
 }
 
+interface SelectedImageState {
+  pos: number;
+  rect: { top: number; left: number; width: number; height: number };
+  attrs: EnhancedImageAttributes;
+}
+
 const QUICK_WIDTH_OPTIONS: Array<{ label: string; value: number }> = [
   { label: '40%', value: 40 },
   { label: '60%', value: 60 },
@@ -55,14 +57,6 @@ const ALIGNMENT_OPTIONS: Array<{ label: string; value: ImageAlignment; icon: Rea
   { label: 'Full width', value: 'full', icon: StretchHorizontal },
 ];
 
-const normalizeRotation = (value: number) => {
-  let normalized = value % 360;
-  if (normalized < 0) {
-    normalized += 360;
-  }
-  return normalized;
-};
-
 /**
  * Provides quick-access formatting for images via right-click in the editor canvas.
  */
@@ -74,6 +68,12 @@ export function InlineImageControls({ editor, containerRef }: InlineImageControl
   const [imageEditorAlt, setImageEditorAlt] = React.useState('');
   const [imageEditorError, setImageEditorError] = React.useState<string | null>(null);
   const [imageEditorInitialFocus, setImageEditorInitialFocus] = React.useState<'file' | 'alt'>('file');
+  const [imageSelection, setImageSelection] = React.useState<SelectedImageState | null>(null);
+  const selectionRef = React.useRef<SelectedImageState | null>(null);
+
+  React.useEffect(() => {
+    selectionRef.current = imageSelection;
+  }, [imageSelection]);
 
   const closeMenu = React.useCallback(() => setMenu(null), []);
 
@@ -110,6 +110,167 @@ export function InlineImageControls({ editor, containerRef }: InlineImageControl
         .run();
     },
     [editor, menu],
+  );
+
+  React.useEffect(() => {
+    const computeSelection = () => {
+      const container = containerRef.current;
+      if (!container) {
+        setImageSelection(null);
+        return;
+      }
+
+      const { state } = editor;
+      const selection = state.selection;
+
+      if (!(selection instanceof NodeSelection) || selection.node.type.name !== 'image') {
+        setImageSelection(null);
+        return;
+      }
+
+      const nodeDom = editor.view.nodeDOM(selection.from);
+      if (!(nodeDom instanceof HTMLElement)) {
+        setImageSelection(null);
+        return;
+      }
+
+      const imageRect = nodeDom.getBoundingClientRect();
+      const containerRect = container.getBoundingClientRect();
+
+      setImageSelection({
+        pos: selection.from,
+        rect: {
+          top: imageRect.top - containerRect.top + container.scrollTop,
+          left: imageRect.left - containerRect.left + container.scrollLeft,
+          width: imageRect.width,
+          height: imageRect.height,
+        },
+        attrs: selection.node.attrs as EnhancedImageAttributes,
+      });
+    };
+
+    computeSelection();
+    editor.on('selectionUpdate', computeSelection);
+    editor.on('transaction', computeSelection);
+    window.addEventListener('resize', computeSelection);
+
+    const container = containerRef.current;
+    container?.addEventListener('scroll', computeSelection, { passive: true });
+
+    return () => {
+      editor.off('selectionUpdate', computeSelection);
+      editor.off('transaction', computeSelection);
+      window.removeEventListener('resize', computeSelection);
+      container?.removeEventListener('scroll', computeSelection);
+    };
+  }, [containerRef, editor]);
+
+  const handleResizeStart = React.useCallback(
+    (event: React.PointerEvent<HTMLDivElement>, direction: 'left' | 'right') => {
+      const current = selectionRef.current;
+      if (!current) {
+        return;
+      }
+
+      const imageElement = editor.view.nodeDOM(current.pos);
+      if (!(imageElement instanceof HTMLElement)) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      editor.view.focus();
+
+      const pointerId = event.pointerId;
+      const startX = event.clientX;
+      const startWidth = imageElement.getBoundingClientRect().width;
+      const widthPercent =
+        typeof current.attrs.widthPercent === 'number' && Number.isFinite(current.attrs.widthPercent)
+          ? current.attrs.widthPercent
+          : 60;
+      const safeWidthPercent = Math.max(1, widthPercent);
+      const baselineWidth = startWidth / (safeWidthPercent / 100);
+
+      let latestPercent = widthPercent;
+      let pendingPercent: number | null = null;
+      let frame = 0;
+
+      const flush = () => {
+        frame = 0;
+        if (pendingPercent === null) {
+          return;
+        }
+        const percent = pendingPercent;
+        pendingPercent = null;
+        if (Math.abs(percent - latestPercent) < 0.25) {
+          return;
+        }
+        latestPercent = percent;
+        updateAttributes({ widthPercent: Number.parseFloat(percent.toFixed(2)) });
+      };
+
+      const schedule = (percent: number) => {
+        pendingPercent = percent;
+        if (frame !== 0) {
+          return;
+        }
+        frame = window.requestAnimationFrame(flush);
+      };
+
+      const handlePointerMove = (moveEvent: PointerEvent) => {
+        if (moveEvent.pointerId !== pointerId) {
+          return;
+        }
+
+        const delta = moveEvent.clientX - startX;
+        const adjusted = direction === 'right' ? delta : -delta;
+        const nextWidth = Math.max(16, startWidth + adjusted);
+
+        if (!Number.isFinite(baselineWidth) || baselineWidth <= 0) {
+          return;
+        }
+
+        const percent = Math.max(10, Math.min(100, (nextWidth / baselineWidth) * 100));
+        schedule(percent);
+      };
+
+      const releasePointer = () => {
+        if (frame !== 0) {
+          window.cancelAnimationFrame(frame);
+          frame = 0;
+        }
+        if (pendingPercent !== null && Math.abs(pendingPercent - latestPercent) >= 0.01) {
+          const finalPercent = Math.max(10, Math.min(100, pendingPercent));
+          latestPercent = finalPercent;
+          updateAttributes({ widthPercent: Number.parseFloat(finalPercent.toFixed(2)) });
+        }
+        pendingPercent = null;
+      };
+
+      const handlePointerUp = (upEvent: PointerEvent) => {
+        if (upEvent.pointerId !== pointerId) {
+          return;
+        }
+
+        releasePointer();
+        window.removeEventListener('pointermove', handlePointerMove);
+        window.removeEventListener('pointerup', handlePointerUp);
+        window.removeEventListener('pointercancel', handlePointerUp);
+
+        if (event.currentTarget.hasPointerCapture(pointerId)) {
+          event.currentTarget.releasePointerCapture(pointerId);
+        }
+      };
+
+      event.currentTarget.setPointerCapture(pointerId);
+      window.addEventListener('pointermove', handlePointerMove);
+      window.addEventListener('pointerup', handlePointerUp);
+      window.addEventListener('pointercancel', handlePointerUp);
+
+      schedule(latestPercent);
+    },
+    [editor, updateAttributes],
   );
 
   const handleImageEditorOpenChange = React.useCallback(
@@ -387,12 +548,35 @@ export function InlineImageControls({ editor, containerRef }: InlineImageControl
     );
   }
 
-  if (!menuContent && !imageEditorOpen) {
+  if (!menuContent && !imageEditorOpen && !imageSelection) {
     return null;
   }
 
   return (
     <>
+      {imageSelection ? (
+        <div
+          className='pointer-events-none absolute z-40'
+          style={{
+            top: Math.max(0, imageSelection.rect.top - 8),
+            left: Math.max(0, imageSelection.rect.left - 8),
+            width: imageSelection.rect.width + 16,
+            height: imageSelection.rect.height + 16,
+          }}
+        >
+          <div className='pointer-events-none absolute inset-0 rounded-xl border-2 border-brand-500/80 shadow-[0_0_0_6px_rgba(99,102,241,0.18)]' />
+          <div
+            role='presentation'
+            className='pointer-events-auto absolute top-1/2 -left-3 h-5 w-5 -translate-y-1/2 cursor-ew-resize rounded-full border-2 border-white bg-brand-500 shadow-lg'
+            onPointerDown={(event) => handleResizeStart(event, 'left')}
+          />
+          <div
+            role='presentation'
+            className='pointer-events-auto absolute top-1/2 -right-3 h-5 w-5 -translate-y-1/2 cursor-ew-resize rounded-full border-2 border-white bg-brand-500 shadow-lg'
+            onPointerDown={(event) => handleResizeStart(event, 'right')}
+          />
+        </div>
+      ) : null}
       {menuContent}
       <Dialog open={imageEditorOpen} onOpenChange={handleImageEditorOpenChange}>
         <DialogContent className='max-w-lg'>
