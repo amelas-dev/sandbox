@@ -26,11 +26,22 @@ export function GenerateDocumentsDialog({ open, onOpenChange }: GenerateDocument
   const dataset = useAppStore(selectDataset);
   const template = useAppStore(selectTemplate);
   const generationOptions = useAppStore(selectGenerationOptions);
+  const selectedIndexes = useAppStore((state) => state.selection);
   const updateGenerationOptions = useAppStore((state) => state.updateGenerationOptions);
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [status, setStatus] = React.useState<string>('');
   const filterValue = generationOptions.filter?.value;
   const filterValueInput = filterValue == null ? '' : String(filterValue);
+
+  const effectiveOptions = React.useMemo(() => {
+    if (generationOptions.range === 'selection') {
+      return {
+        ...generationOptions,
+        selection: selectedIndexes,
+      };
+    }
+    return generationOptions;
+  }, [generationOptions, selectedIndexes]);
 
   const handleGenerate = async () => {
     if (!dataset) {
@@ -40,13 +51,13 @@ export function GenerateDocumentsDialog({ open, onOpenChange }: GenerateDocument
     setIsGenerating(true);
     setStatus('Preparing documents…');
     try {
-      const artifacts = await buildGenerationArtifacts(dataset, template, generationOptions);
+      const artifacts = await buildGenerationArtifacts(dataset, template, effectiveOptions);
       if (!artifacts.length) {
         setStatus('No records match the selected range or filter.');
         setIsGenerating(false);
         return;
       }
-      await exportArtifacts(artifacts, generationOptions.format);
+      await exportArtifacts(artifacts, effectiveOptions.format);
       setStatus(`Generated ${artifacts.length} document${artifacts.length > 1 ? 's' : ''}.`);
       onOpenChange(false);
     } catch (error) {
