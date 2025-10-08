@@ -20,6 +20,34 @@ export interface EnhancedImageAttributes {
 
 export const DEFAULT_IMAGE_BORDER_COLOR = 'rgba(15, 23, 42, 0.12)';
 
+const parseNumericAttribute = (value: unknown): number | null => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === 'string') {
+    const numeric = Number.parseFloat(value);
+    if (Number.isFinite(numeric)) {
+      return numeric;
+    }
+  }
+  return null;
+};
+
+const parseBooleanAttribute = (value: unknown): boolean | null => {
+  if (typeof value === 'boolean') {
+    return value;
+  }
+  if (typeof value === 'string') {
+    if (value === 'true') {
+      return true;
+    }
+    if (value === 'false') {
+      return false;
+    }
+  }
+  return null;
+};
+
 export const EnhancedImage = Image.extend({
   name: 'image',
 
@@ -176,41 +204,96 @@ export const EnhancedImage = Image.extend({
       EnhancedImageAttributes
     > & Record<string, unknown>;
 
+    const attributeLookup = rest as Record<string, unknown>;
+
+    const resolvedWidthPercent = (() => {
+      const direct = parseNumericAttribute(widthPercent);
+      if (direct !== null) {
+        return direct;
+      }
+      const fallback = parseNumericAttribute(attributeLookup['data-width-percent']);
+      return fallback !== null ? fallback : null;
+    })();
+
     const styleFragments: string[] = [];
 
-    if (typeof widthPercent === 'number' && Number.isFinite(widthPercent)) {
-      styleFragments.push(`width: ${Math.max(10, Math.min(100, widthPercent))}%`);
+    if (resolvedWidthPercent !== null) {
+      styleFragments.push(`width: ${Math.max(10, Math.min(100, resolvedWidthPercent))}%`);
     }
     styleFragments.push('height: auto');
 
-    const effectiveRadius = typeof borderRadius === 'number' ? Math.max(0, borderRadius) : 0;
+    const resolvedBorderRadius = (() => {
+      const direct = parseNumericAttribute(borderRadius);
+      if (direct !== null) {
+        return direct;
+      }
+      const fallback = parseNumericAttribute(attributeLookup['data-border-radius']);
+      return fallback !== null ? fallback : null;
+    })();
+
+    const effectiveRadius =
+      resolvedBorderRadius !== null ? Math.max(0, resolvedBorderRadius) : 0;
     if (effectiveRadius > 0) {
       styleFragments.push(`border-radius: ${effectiveRadius}px`);
     }
 
-    const effectiveBorderWidth = typeof borderWidth === 'number' ? Math.max(0, borderWidth) : 0;
+    const resolvedBorderWidth = (() => {
+      const direct = parseNumericAttribute(borderWidth);
+      if (direct !== null) {
+        return direct;
+      }
+      const fallback = parseNumericAttribute(attributeLookup['data-border-width']);
+      return fallback !== null ? fallback : null;
+    })();
+
+    const effectiveBorderWidth =
+      resolvedBorderWidth !== null ? Math.max(0, resolvedBorderWidth) : 0;
     if (effectiveBorderWidth > 0) {
       styleFragments.push(`border-width: ${effectiveBorderWidth}px`);
       styleFragments.push('border-style: solid');
-      styleFragments.push(`border-color: ${borderColor ?? DEFAULT_IMAGE_BORDER_COLOR}`);
+      const resolvedBorderColor =
+        (typeof borderColor === 'string' && borderColor.length > 0
+          ? borderColor
+          : null)
+          ?? (typeof attributeLookup['data-border-color'] === 'string'
+            && (attributeLookup['data-border-color'] as string).length > 0
+            ? (attributeLookup['data-border-color'] as string)
+            : DEFAULT_IMAGE_BORDER_COLOR);
+      styleFragments.push(`border-color: ${resolvedBorderColor}`);
     } else {
       styleFragments.push('border-width: 0');
       styleFragments.push('border-style: none');
     }
 
-    if (shadow) {
+    const resolvedShadow =
+      parseBooleanAttribute(shadow)
+        ?? parseBooleanAttribute(attributeLookup['data-shadow'])
+        ?? true;
+
+    if (resolvedShadow) {
       styleFragments.push('box-shadow: 0 10px 35px rgba(15, 23, 42, 0.15)');
     } else {
       styleFragments.push('box-shadow: none');
     }
 
     const transformFragments: string[] = [];
-    const isFlipHorizontal = flipHorizontal === true;
-    const isFlipVertical = flipVertical === true;
+    const isFlipHorizontal =
+      parseBooleanAttribute(flipHorizontal)
+        ?? parseBooleanAttribute(attributeLookup['data-flip-horizontal'])
+        ?? false;
+    const isFlipVertical =
+      parseBooleanAttribute(flipVertical)
+        ?? parseBooleanAttribute(attributeLookup['data-flip-vertical'])
+        ?? false;
     let normalizedRotation = 0;
 
-    if (typeof rotation === 'number' && Number.isFinite(rotation)) {
-      normalizedRotation = rotation % 360;
+    const resolvedRotation =
+      parseNumericAttribute(rotation)
+        ?? parseNumericAttribute(attributeLookup['data-rotation'])
+        ?? 0;
+
+    if (Number.isFinite(resolvedRotation)) {
+      normalizedRotation = resolvedRotation % 360;
       if (normalizedRotation < 0) {
         normalizedRotation += 360;
       }
@@ -240,7 +323,18 @@ export const EnhancedImage = Image.extend({
       classList.push(rest.class);
     }
 
-    switch (alignment) {
+    const resolvedAlignment = (() => {
+      if (typeof alignment === 'string') {
+        return alignment as ImageAlignment;
+      }
+      const fallback = attributeLookup['data-align'];
+      if (typeof fallback === 'string') {
+        return fallback as ImageAlignment;
+      }
+      return 'inline';
+    })();
+
+    switch (resolvedAlignment) {
       case 'left':
         classList.push('dm-image-align-left');
         break;
