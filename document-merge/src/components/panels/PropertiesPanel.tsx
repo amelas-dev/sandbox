@@ -56,7 +56,12 @@ import {
 import { applyTableSelection, type TableSelectionScope } from '@/lib/editor/tableSelection';
 import type { EnhancedImageAttributes, ImageAlignment } from '@/editor/extensions/enhanced-image';
 import { DEFAULT_IMAGE_BORDER_COLOR } from '@/editor/extensions/enhanced-image';
-import { ImageSourceForm } from '@/components/editor/ImageSourceForm';
+import {
+  ImageSourceForm,
+  type ImageSourceSubmitValue,
+  type ImageSourceValue,
+} from '@/components/editor/ImageSourceForm';
+import { ColorSwatchButton } from '@/components/ui/color-swatch-button';
 
 interface PropertiesPanelProps {
   editor: Editor | null;
@@ -757,12 +762,12 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
   const [componentType, setComponentType] = React.useState<'table' | 'image' | 'chart'>('table');
   const [insertRows, setInsertRows] = React.useState(3);
   const [insertCols, setInsertCols] = React.useState(3);
-  const [imageUrlInput, setImageUrlInput] = React.useState('');
+  const [imageInsertSource, setImageInsertSource] = React.useState<ImageSourceValue | null>(null);
   const [imageInsertAlt, setImageInsertAlt] = React.useState('');
   const [imageUploadError, setImageUploadError] = React.useState<string | null>(null);
   const [imageAltDraft, setImageAltDraft] = React.useState('');
   const [imageReplaceOpen, setImageReplaceOpen] = React.useState(false);
-  const [imageReplaceUrl, setImageReplaceUrl] = React.useState('');
+  const [imageReplaceSource, setImageReplaceSource] = React.useState<ImageSourceValue | null>(null);
   const [imageReplaceAlt, setImageReplaceAlt] = React.useState('');
   const [imageReplaceError, setImageReplaceError] = React.useState<string | null>(null);
 
@@ -901,7 +906,7 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
     updateTableAttributes({ tableWidth: normalized });
   };
 
-  const handleImageInsert = ({ src, alt }: { src: string; alt: string }) => {
+  const handleImageInsert = ({ src, alt }: ImageSourceSubmitValue) => {
     if (!editor) {
       return;
     }
@@ -920,7 +925,7 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
     });
     chain.run();
     setComponentType('image');
-    setImageUrlInput('');
+    setImageInsertSource(null);
     setImageInsertAlt('');
     setImageUploadError(null);
   };
@@ -1009,13 +1014,13 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
     if (!editor || !imageActive) {
       return;
     }
-    setImageReplaceUrl(imageSrcValue ?? '');
+    setImageReplaceSource(imageSrcValue ? { file: null, src: imageSrcValue } : null);
     setImageReplaceAlt(imageAltValue);
     setImageReplaceError(null);
     setImageReplaceOpen(true);
   };
 
-  const handleImageReplaceSubmit = ({ src, alt }: { src: string; alt: string }) => {
+  const handleImageReplaceSubmit = ({ src, alt }: ImageSourceSubmitValue) => {
     if (!editor || !imageActive) {
       return;
     }
@@ -1028,6 +1033,7 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
   const handleImageReplaceOpenChange = (open: boolean) => {
     setImageReplaceOpen(open);
     if (!open) {
+      setImageReplaceSource(null);
       setImageReplaceError(null);
       editor?.view?.focus();
     }
@@ -1556,10 +1562,10 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
                     </DialogHeader>
                     <div className='mt-6'>
                       <ImageSourceForm
-                        src={imageReplaceUrl}
+                        source={imageReplaceSource}
                         alt={imageReplaceAlt}
                         error={imageReplaceError}
-                        onSrcChange={setImageReplaceUrl}
+                        onSourceChange={setImageReplaceSource}
                         onAltChange={setImageReplaceAlt}
                         onErrorChange={setImageReplaceError}
                         onSubmit={handleImageReplaceSubmit}
@@ -1724,11 +1730,11 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
                 <section className='space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900'>
                   <span className='text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400'>Insert image</span>
                   <ImageSourceForm
-                    src={imageUrlInput}
+                    source={imageInsertSource}
                     alt={imageInsertAlt}
                     error={imageUploadError}
-                    onSrcChange={(value) => {
-                      setImageUrlInput(value);
+                    onSourceChange={(value) => {
+                      setImageInsertSource(value);
                     }}
                     onAltChange={setImageInsertAlt}
                     onErrorChange={setImageUploadError}
@@ -1741,7 +1747,7 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
                         size='sm'
                         className='rounded-xl'
                         onClick={() => {
-                          setImageUrlInput('');
+                          setImageInsertSource(null);
                           setImageInsertAlt('');
                           setImageUploadError(null);
                         }}
