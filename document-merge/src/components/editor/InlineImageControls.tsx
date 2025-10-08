@@ -31,6 +31,7 @@ import {
 interface ImageContextMenuState {
   x: number;
   y: number;
+  pos: number;
   attrs: EnhancedImageAttributes;
 }
 
@@ -78,9 +79,34 @@ export function InlineImageControls({ editor, containerRef }: InlineImageControl
 
   const updateAttributes = React.useCallback(
     (next: Partial<EnhancedImageAttributes>) => {
-      editor.chain().focus().updateAttributes('image', next).run();
+      const { state } = editor;
+      const selection = state.selection;
+
+      const targetPos = menu?.pos
+        ?? (selection instanceof NodeSelection && selection.node.type.name === 'image'
+          ? selection.from
+          : null);
+
+      if (targetPos === null) {
+        return;
+      }
+
+      editor
+        .chain()
+        .focus()
+        .command(({ state, tr }) => {
+          const node = state.doc.nodeAt(targetPos);
+          if (!node || node.type.name !== 'image') {
+            return false;
+          }
+          const attrs = { ...node.attrs, ...next };
+          tr.setSelection(NodeSelection.create(state.doc, targetPos));
+          tr.setNodeMarkup(targetPos, undefined, attrs);
+          return true;
+        })
+        .run();
     },
-    [editor],
+    [editor, menu],
   );
 
   const handleImageEditorOpenChange = React.useCallback(
@@ -156,6 +182,7 @@ export function InlineImageControls({ editor, containerRef }: InlineImageControl
       setMenu({
         x: Math.max(8, clampedX),
         y: Math.max(8, clampedY),
+        pos,
         attrs: node.attrs as EnhancedImageAttributes,
       });
     };

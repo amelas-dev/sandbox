@@ -1,6 +1,7 @@
 
 import * as React from 'react';
 import type { Editor } from '@tiptap/core';
+import { NodeSelection } from '@tiptap/pm/state';
 import {
   AlignCenter,
   AlignJustify,
@@ -540,14 +541,51 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
   }, []);
 
   const [, forceSelectionUpdate] = React.useReducer((count: number) => count + 1, 0);
+  const [imageSelection, setImageSelection] = React.useState<
+    { pos: number; attrs: EnhancedImageAttributes } | null
+  >(null);
 
   React.useEffect(() => {
     if (!editor) {
       return;
     }
-    const handleUpdate = () => forceSelectionUpdate();
+    const handleUpdate = () => {
+      forceSelectionUpdate();
+
+      const { state, view } = editor;
+      const { selection } = state;
+
+      if (selection instanceof NodeSelection && selection.node.type.name === 'image') {
+        setImageSelection({
+          pos: selection.from,
+          attrs: selection.node.attrs as EnhancedImageAttributes,
+        });
+        return;
+      }
+
+      if (!view.hasFocus()) {
+        setImageSelection((current) => {
+          if (!current) {
+            return null;
+          }
+          const node = state.doc.nodeAt(current.pos);
+          if (!node || node.type.name !== 'image') {
+            return null;
+          }
+          return {
+            pos: current.pos,
+            attrs: node.attrs as EnhancedImageAttributes,
+          };
+        });
+        return;
+      }
+
+      setImageSelection(null);
+    };
+
     editor.on('selectionUpdate', handleUpdate);
     editor.on('transaction', handleUpdate);
+    handleUpdate();
     return () => {
       editor.off('selectionUpdate', handleUpdate);
       editor.off('transaction', handleUpdate);
@@ -791,10 +829,8 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
     }
   }, [rawTableWidth, tableWidthMode]);
 
-  const imageActive = editor?.isActive('image') ?? false;
-  const imageAttributes: Partial<EnhancedImageAttributes> = imageActive
-    ? ((editor?.getAttributes('image') as Partial<EnhancedImageAttributes>) ?? {})
-    : {};
+  const imageActive = Boolean(imageSelection);
+  const imageAttributes: Partial<EnhancedImageAttributes> = imageSelection?.attrs ?? {};
   const imageWidthPercent = Math.round(
     typeof imageAttributes.widthPercent === 'number'
       ? Math.max(10, Math.min(100, imageAttributes.widthPercent))
@@ -844,12 +880,39 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
 
   const updateImageAttributes = React.useCallback(
     (next: Partial<EnhancedImageAttributes>) => {
-      if (!editor || !imageActive) {
+      if (!editor || !imageSelection) {
         return;
       }
-      editor.chain().focus().updateAttributes('image', next).run();
+
+      const { pos } = imageSelection;
+
+      editor
+        .chain()
+        .focus()
+        .command(({ state, tr }) => {
+          const node = state.doc.nodeAt(pos);
+          if (!node || node.type.name !== 'image') {
+            return false;
+          }
+
+          const attrs = { ...node.attrs, ...next };
+          tr.setSelection(NodeSelection.create(state.doc, pos));
+          tr.setNodeMarkup(pos, undefined, attrs);
+          return true;
+        })
+        .run();
+
+      setImageSelection((current) => {
+        if (!current || current.pos !== pos) {
+          return current;
+        }
+        return {
+          pos: current.pos,
+          attrs: { ...current.attrs, ...next },
+        };
+      });
     },
-    [editor, imageActive],
+    [editor, imageSelection],
   );
 
   const updateTableAttributes = (update: Partial<PremiumTableAttributes>) => {
