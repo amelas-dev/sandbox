@@ -42,6 +42,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { ColorSwatchButton } from '@/components/ui/color-swatch-button';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/store/useAppStore';
 import type { DocumentStylePreset, PageBackgroundOption, ParagraphAlignment, TemplateTypography } from '@/lib/types';
@@ -358,10 +359,10 @@ function FontFamilyDropdown({ label, value, placeholder, onSelectPreset, onCusto
 interface ImageBorderColorPickerProps {
   value: string;
   colors: string[];
-  onSelect: (color: string) => void;
+  onChange: (color: string) => void;
 }
 
-function ImageBorderColorPicker({ value, colors, onSelect }: ImageBorderColorPickerProps) {
+function ImageBorderColorPicker({ value, colors, onChange }: ImageBorderColorPickerProps) {
   const [customColor, setCustomColor] = React.useState<string | null>(null);
   const [customInput, setCustomInput] = React.useState('');
   const [open, setOpen] = React.useState(false);
@@ -402,12 +403,12 @@ function ImageBorderColorPicker({ value, colors, onSelect }: ImageBorderColorPic
         return;
       }
       setCustomColor(trimmed);
-      onSelect(trimmed);
+      onChange(trimmed);
       if (shouldClose) {
         setOpen(false);
       }
     },
-    [onSelect],
+    [onChange],
   );
 
   const handleColorInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -444,7 +445,7 @@ function ImageBorderColorPicker({ value, colors, onSelect }: ImageBorderColorPic
           color={color}
           label={`Apply border color ${color}`}
           active={normalizeColorValue(color) === normalizedValue}
-          onClick={() => onSelect(color)}
+          onClick={() => onChange(color)}
         />
       ))}
       {shouldShowCustomSwatch && (activeCustomColor ?? customColor) ? (
@@ -1889,7 +1890,7 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
                           <ImageBorderColorPicker
                             value={imageBorderColor}
                             colors={IMAGE_BORDER_COLORS}
-                            onSelect={handleImageBorderColorChange}
+                            onChange={handleImageBorderColorChange}
                           />
                           <Button
                             type='button'
