@@ -36,14 +36,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { ColorSwatchButton } from '@/components/ui/color-swatch-button';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { ColorSwatchButton } from '@/components/ui/color-swatch-button';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/store/useAppStore';
 import type { DocumentStylePreset, PageBackgroundOption, ParagraphAlignment, TemplateTypography } from '@/lib/types';
@@ -77,15 +75,6 @@ interface FontFamilyDropdownProps {
   onSelectPreset: (stack: string) => void;
   onCustomChange: (value: string) => void;
   disabled?: boolean;
-}
-
-interface ImageBorderColorPickerProps {
-  value: string;
-  colors: string[];
-  onSelect: (color: string) => void;
-  onChange?: (color: string) => void;
-  disabled?: boolean;
-  className?: string;
 }
 
 const LAYOUT_MARGIN_FIELDS: Array<{ label: string; key: 'top' | 'right' | 'bottom' | 'left' }> = [

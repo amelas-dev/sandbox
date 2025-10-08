@@ -21,7 +21,7 @@ import {
 } from '@/store/useAppStore';
 import { buildGenerationArtifacts, renderFilename } from '@/lib/merge';
 import { exportArtifacts } from '@/lib/exporters';
-import type { GenerationFilter } from '@/lib/types';
+import type { GenerationFilter, GenerationOptions } from '@/lib/types';
 
 interface GenerateDocumentsDialogProps {
   open: boolean;
@@ -38,6 +38,21 @@ export function GenerateDocumentsDialog({ open, onOpenChange }: GenerateDocument
   const [status, setStatus] = React.useState<string>('');
   const filterValue = generationOptions.filter?.value;
   const filterValueInput = filterValue == null ? '' : String(filterValue);
+
+  const effectiveOptions = React.useMemo<GenerationOptions>(() => {
+    const normalizedFilter =
+      generationOptions.range === 'filtered' && generationOptions.filter
+        ? generationOptions.filter
+        : undefined;
+    const normalizedSelection =
+      generationOptions.range === 'selection' ? generationOptions.selection : undefined;
+
+    return {
+      ...generationOptions,
+      filter: normalizedFilter,
+      selection: normalizedSelection,
+    };
+  }, [generationOptions]);
 
   const sampleName = React.useMemo(() => {
     if (!dataset || !previewRow) {
