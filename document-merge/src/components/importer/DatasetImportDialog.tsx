@@ -121,11 +121,15 @@ export function DatasetImportDialog() {
     }
   };
 
-  const handleSample = () => {
-    const result = parseCsvString(SAMPLE_CSV, {
+  const parseSampleDataset = React.useCallback(() => {
+    return parseCsvString(SAMPLE_CSV, {
       name: 'Sample Investors',
       importedAt: new Date().toISOString(),
     });
+  }, []);
+
+  const handleSample = () => {
+    const result = parseSampleDataset();
     setPreviewResult(result);
     setStatus('preview');
     setMessage(
@@ -135,6 +139,19 @@ export function DatasetImportDialog() {
       )} rows below, then import when ready.`,
     );
   };
+
+  const handleUseSampleDataset = React.useCallback(() => {
+    const result = parseSampleDataset();
+    setDataset(result);
+    setPreviewResult(null);
+    setStatus('success');
+    setMessage(
+      `Imported ${result.dataset.rows.length} records from ${
+        result.dataset.sourceMeta?.name ?? 'the sample dataset'
+      }.`,
+    );
+    setOpen(false);
+  }, [parseSampleDataset, setDataset, setMessage, setOpen, setPreviewResult, setStatus]);
 
   const handleConfirmImport = () => {
     if (!previewResult) return;
@@ -359,8 +376,8 @@ export function DatasetImportDialog() {
           <Button variant="outline" onClick={() => setOpen(false)} disabled={isLoading}>
             Close
           </Button>
-          <Button variant="subtle" onClick={handleSample} className="gap-2">
-            <FileDown className="h-4 w-4" /> Use sample dataset
+          <Button variant="subtle" onClick={handleUseSampleDataset} className="gap-2" disabled={isLoading}>
+            <FileDown className="h-4 w-4" /> Import sample dataset
           </Button>
           <Button onClick={handleConfirmImport} className="gap-2" disabled={!previewResult || isLoading}>
             <CheckCircle2 className="h-4 w-4" /> Import dataset
