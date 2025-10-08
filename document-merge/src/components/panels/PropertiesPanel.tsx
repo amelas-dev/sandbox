@@ -787,6 +787,12 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
 
   const [activeTab, setActiveTab] = React.useState<PropertiesTab>('layout');
   const [componentType, setComponentType] = React.useState<'table' | 'image' | 'chart'>('table');
+  const previousComponentTypeRef = React.useRef<'table' | 'image' | 'chart'>(componentType);
+  React.useEffect(() => {
+    if (componentType !== 'table') {
+      previousComponentTypeRef.current = componentType;
+    }
+  }, [componentType]);
   const [insertRows, setInsertRows] = React.useState(3);
   const [insertCols, setInsertCols] = React.useState(3);
   const [imageInsertSource, setImageInsertSource] = React.useState<ImageSourceValue | null>(null);
@@ -799,6 +805,21 @@ export function PropertiesPanel({ editor }: PropertiesPanelProps) {
   const [imageReplaceError, setImageReplaceError] = React.useState<string | null>(null);
 
   const tableActive = Boolean(editor?.isActive('table'));
+  React.useEffect(() => {
+    if (tableActive) {
+      setActiveTab((current) => (current === 'comp' ? current : 'comp'));
+      setComponentType('table');
+      return;
+    }
+
+    setComponentType((current) => {
+      if (current !== 'table') {
+        return current;
+      }
+      const fallback = previousComponentTypeRef.current;
+      return fallback === 'table' ? current : fallback;
+    });
+  }, [tableActive]);
   const tableAttributes: Partial<PremiumTableAttributes> = tableActive
     ? ((editor?.getAttributes('table') as Partial<PremiumTableAttributes>) ?? {})
     : {};
