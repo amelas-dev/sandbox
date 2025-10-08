@@ -94,7 +94,7 @@ export function InlineImageControls({ editor, containerRef }: InlineImageControl
       editor
         .chain()
         .focus()
-        .command(({ state, tr }) => {
+        .command(({ state, tr, dispatch }) => {
           const node = state.doc.nodeAt(targetPos);
           if (!node || node.type.name !== 'image') {
             return false;
@@ -102,6 +102,9 @@ export function InlineImageControls({ editor, containerRef }: InlineImageControl
           const attrs = { ...node.attrs, ...next };
           tr.setSelection(NodeSelection.create(state.doc, targetPos));
           tr.setNodeMarkup(targetPos, undefined, attrs);
+          if (dispatch) {
+            dispatch(tr);
+          }
           return true;
         })
         .run();
