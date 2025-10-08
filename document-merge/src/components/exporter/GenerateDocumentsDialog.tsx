@@ -12,8 +12,14 @@ import { Button } from '@/components/ui/button';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useAppStore, selectDataset, selectGenerationOptions, selectTemplate } from '@/store/useAppStore';
-import { buildGenerationArtifacts } from '@/lib/merge';
+import {
+  useAppStore,
+  selectDataset,
+  selectGenerationOptions,
+  selectPreviewRow,
+  selectTemplate,
+} from '@/store/useAppStore';
+import { buildGenerationArtifacts, renderFilename } from '@/lib/merge';
 import { exportArtifacts } from '@/lib/exporters';
 import type { GenerationFilter } from '@/lib/types';
 
@@ -26,11 +32,19 @@ export function GenerateDocumentsDialog({ open, onOpenChange }: GenerateDocument
   const dataset = useAppStore(selectDataset);
   const template = useAppStore(selectTemplate);
   const generationOptions = useAppStore(selectGenerationOptions);
+  const previewRow = useAppStore(selectPreviewRow);
   const updateGenerationOptions = useAppStore((state) => state.updateGenerationOptions);
   const [isGenerating, setIsGenerating] = React.useState(false);
   const [status, setStatus] = React.useState<string>('');
   const filterValue = generationOptions.filter?.value;
   const filterValueInput = filterValue == null ? '' : String(filterValue);
+
+  const sampleName = React.useMemo(() => {
+    if (!dataset || !previewRow) {
+      return undefined;
+    }
+    return renderFilename(generationOptions.filenamePattern, previewRow, 'document');
+  }, [dataset, previewRow, generationOptions.filenamePattern]);
 
   const handleGenerate = async () => {
     if (!dataset) {
@@ -163,6 +177,9 @@ export function GenerateDocumentsDialog({ open, onOpenChange }: GenerateDocument
                 onChange={(event) => updateGenerationOptions({ filenamePattern: event.target.value })}
                 placeholder="Welcome_{{InvestorName}}"
               />
+              {sampleName && (
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Example: {sampleName}</p>
+              )}
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                 Use merge tags like <code>{`{{InvestorName}}`}</code> to personalize file names.
               </p>
