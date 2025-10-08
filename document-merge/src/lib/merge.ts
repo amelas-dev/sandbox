@@ -224,8 +224,8 @@ export function renderFilename(pattern: string, record: Record<string, unknown>,
 }
 
 export function filterRows(dataset: Dataset, options: GenerationOptions): number[] {
-  if (options.range === 'selection' && options.selection?.length) {
-    return options.selection;
+  if (options.range === 'selection') {
+    return options.selection?.length ? options.selection : [];
   }
   if (options.range === 'filtered' && options.filter) {
     const { field, op, value } = options.filter;

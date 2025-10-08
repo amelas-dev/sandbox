@@ -54,13 +54,13 @@ export function GenerateDocumentsDialog({ open, onOpenChange }: GenerateDocument
     setIsGenerating(true);
     setStatus('Preparing documents…');
     try {
-      const artifacts = await buildGenerationArtifacts(dataset, template, generationOptions);
+      const artifacts = await buildGenerationArtifacts(dataset, template, effectiveOptions);
       if (!artifacts.length) {
         setStatus('No records match the selected range or filter.');
         setIsGenerating(false);
         return;
       }
-      await exportArtifacts(artifacts, generationOptions.format);
+      await exportArtifacts(artifacts, effectiveOptions.format);
       setStatus(`Generated ${artifacts.length} document${artifacts.length > 1 ? 's' : ''}.`);
       onOpenChange(false);
     } catch (error) {
