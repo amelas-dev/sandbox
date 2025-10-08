@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { JSONContent } from '@tiptap/core';
-import type { TemplateDoc } from '../src/lib/types';
-import { expandTemplateToHtml, pruneTemplateContent, renderFilename, substituteMergeTags } from '../src/lib/merge';
+import { filterRows, pruneTemplateContent, renderFilename, substituteMergeTags } from '../src/lib/merge';
+import type { Dataset } from '../src/lib/types';
 
 describe('substituteMergeTags', () => {
   it('replaces tokens with record values, handling nested paths and dates', () => {
@@ -201,5 +201,37 @@ describe('renderFilename', () => {
   it('falls back when the pattern resolves to an empty string', () => {
     const filename = renderFilename('{{Unknown}}', {}, 'document');
     expect(filename).toBe('document');
+  });
+});
+
+describe('filterRows', () => {
+  const dataset = {
+    fields: [{ key: 'Name', label: 'Name', type: 'string' as const }],
+    rows: [
+      { Name: 'Alpha' },
+      { Name: 'Bravo' },
+      { Name: 'Charlie' },
+    ],
+  } satisfies Dataset;
+
+  it('returns only the explicitly selected indexes when range is selection', () => {
+    const options = {
+      format: 'pdf' as const,
+      range: 'selection' as const,
+      filenamePattern: '{{Name}}',
+      selection: [2, 0],
+    };
+
+    expect(filterRows(dataset, options)).toEqual([2, 0]);
+  });
+
+  it('returns an empty array when selection is missing for selection range', () => {
+    const options = {
+      format: 'pdf' as const,
+      range: 'selection' as const,
+      filenamePattern: '{{Name}}',
+    };
+
+    expect(filterRows(dataset, options)).toEqual([]);
   });
 });
