@@ -35,6 +35,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import { ColorSwatchButton } from '@/components/ui/color-swatch-button';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -70,6 +71,15 @@ interface FontFamilyDropdownProps {
   onSelectPreset: (stack: string) => void;
   onCustomChange: (value: string) => void;
   disabled?: boolean;
+}
+
+interface ImageBorderColorPickerProps {
+  value: string;
+  colors: string[];
+  onSelect: (color: string) => void;
+  onChange?: (color: string) => void;
+  disabled?: boolean;
+  className?: string;
 }
 
 const LAYOUT_MARGIN_FIELDS: Array<{ label: string; key: 'top' | 'right' | 'bottom' | 'left' }> = [
