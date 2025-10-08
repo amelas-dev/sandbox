@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { JSONContent } from '@tiptap/core';
-import { filterRows, pruneTemplateContent, renderFilename, substituteMergeTags } from '../src/lib/merge';
-import type { Dataset } from '../src/lib/types';
+import {
+  expandTemplateToHtml,
+  filterRows,
+  pruneTemplateContent,
+  renderFilename,
+  substituteMergeTags,
+} from '../src/lib/merge';
+import type { Dataset, TemplateDoc } from '../src/lib/types';
 
 describe('substituteMergeTags', () => {
   it('replaces tokens with record values, handling nested paths and dates', () => {
@@ -185,6 +191,39 @@ describe('expandTemplateToHtml', () => {
     expect(populatedResult).toContain('Suite 200');
     expect(populatedResult).toMatch(/>Renewal<\/span>/);
     expect(populatedResult).toMatch(/>\$250<\/span>/);
+  });
+
+  it('substitutes values when the merge tag label differs from the dataset key', async () => {
+    const labelTemplate: TemplateDoc = {
+      content: {
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [
+              { type: 'text', text: 'Contact: ' },
+              { type: 'mergeTag', attrs: { fieldKey: 'primary_contact', label: 'Primary Contact' } },
+              { type: 'text', text: ' — Region: ' },
+              { type: 'mergeTag', attrs: { fieldKey: 'regionCode', label: 'Region Code' } },
+            ],
+          },
+        ],
+      },
+      page: baseTemplate.page,
+      appearance: baseTemplate.appearance,
+      styles: baseTemplate.styles,
+    };
+
+    const record = {
+      primary_contact: 'Avery Stone',
+      regionCode: 'NW-5',
+    } as Record<string, unknown>;
+
+    const html = await expandTemplateToHtml(labelTemplate, record);
+    expect(html).toContain('Avery Stone');
+    expect(html).toContain('NW-5');
+    expect(html).not.toContain('{{');
+    expect(html).toContain('data-label="Primary Contact"');
   });
 });
 

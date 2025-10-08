@@ -59,13 +59,16 @@ export const MergeTag = Node.create<MergeTagOptions>({
       'data-merge-tag': attrs.fieldKey,
       class: `merge-tag inline-flex items-center rounded-md border border-brand-200 bg-brand-50 px-2 py-1 font-mono text-xs text-brand-700`,
     };
+    if (attrs.label) {
+      baseAttributes['data-label'] = attrs.label;
+    }
     if (attrs.suppressIfEmpty) {
       baseAttributes['data-suppress-empty'] = 'true';
     }
     return [
       'span',
       mergeAttributes(HTMLAttributes, baseAttributes),
-      `{{ ${attrs.label ?? attrs.fieldKey} }}`,
+      `{{ ${attrs.fieldKey} }}`,
     ];
   },
 
