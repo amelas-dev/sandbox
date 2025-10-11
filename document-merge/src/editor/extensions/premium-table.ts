@@ -29,7 +29,7 @@ export interface PremiumTableCellAttributes {
 export const DEFAULT_TABLE_BORDER_COLOR = '#e2e8f0';
 export const DEFAULT_TABLE_BORDER_WIDTH = '1px';
 export const DEFAULT_TABLE_BORDER_STYLE: TableBorderStyle = 'solid';
-export const DEFAULT_TABLE_STRIPE_COLOR = 'rgba(148, 163, 184, 0.12)';
+export const DEFAULT_TABLE_STRIPE_COLOR = 'rgba(37, 99, 235, 0.12)';
 export const DEFAULT_TABLE_CELL_PADDING = '12px';
 
 function sanitizeCssValue(value: unknown): string | undefined {
@@ -319,4 +319,3 @@ export const PremiumTableRow = TableRow.extend({
     };
   },
 });
-

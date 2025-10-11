@@ -86,16 +86,16 @@ const LAYOUT_MARGIN_FIELDS: Array<{ label: string; key: 'top' | 'right' | 'botto
 
 const STYLE_COLOR_PALETTE = [
   '#0f172a',
-  '#1e293b',
+  '#172554',
+  '#1e3a8a',
+  '#1d4ed8',
   '#2563eb',
-  '#7c3aed',
+  '#3b82f6',
+  '#60a5fa',
+  '#38bdf8',
   '#0ea5e9',
-  '#10b981',
-  '#f97316',
-  '#ef4444',
-  '#f472b6',
-  '#facc15',
-  '#f59e0b',
+  '#7dd3fc',
+  '#bae6fd',
 ];
 
 function normalizeColorString(color: string): string {

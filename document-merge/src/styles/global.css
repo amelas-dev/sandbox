@@ -45,7 +45,7 @@ body {
 .scrollbar-sleek:hover::-webkit-scrollbar-thumb,
 .scrollbar-sleek:focus-visible::-webkit-scrollbar-thumb,
 .scrollbar-sleek:focus-within::-webkit-scrollbar-thumb {
-  background-color: rgba(148, 163, 184, 0.45);
+  background-color: rgba(30, 64, 175, 0.45);
   border-radius: 9999px;
   border: 2px solid transparent;
   background-clip: content-box;
@@ -54,7 +54,7 @@ body {
 .scrollbar-sleek:hover::-webkit-scrollbar-thumb:hover,
 .scrollbar-sleek:focus-visible::-webkit-scrollbar-thumb:hover,
 .scrollbar-sleek:focus-within::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(99, 102, 241, 0.65);
+  background-color: rgba(37, 99, 235, 0.65);
 }
 
 img[data-editor-image] {
@@ -65,7 +65,7 @@ img[data-editor-image] {
 }
 
 img[data-editor-image].ProseMirror-selectednode {
-  outline: 3px solid rgba(99, 102, 241, 0.45);
+  outline: 3px solid rgba(37, 99, 235, 0.45);
   outline-offset: 3px;
 }
 
@@ -140,7 +140,7 @@ img[data-editor-image].dm-image-inline {
   --dm-table-border-color: #e2e8f0;
   --dm-table-border-width: 1px;
   --dm-table-border-style: solid;
-  --dm-table-stripe-color: rgba(148, 163, 184, 0.12);
+  --dm-table-stripe-color: rgba(37, 99, 235, 0.12);
   --dm-table-cell-padding: 0.65rem;
   border: var(--dm-table-border-width) var(--dm-table-border-style) var(--dm-table-border-color);
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
@@ -209,7 +209,7 @@ img[data-editor-image].dm-image-inline {
   top: 0;
   bottom: -2px;
   width: 6px;
-  background-color: rgba(99, 102, 241, 0.35);
+  background-color: rgba(37, 99, 235, 0.35);
   pointer-events: none;
 }
 
@@ -248,4 +248,3 @@ img[data-editor-image].dm-image-inline {
   margin-top: calc(var(--dm-paragraph-spacing) * 0.75);
   margin-bottom: calc(var(--dm-paragraph-spacing) * 0.75);
 }
-
