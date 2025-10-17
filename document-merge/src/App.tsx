@@ -4,6 +4,7 @@ import { AppHeader } from '@/components/layout/AppHeader';
 import { FieldPalette } from '@/components/panels/FieldPalette';
 import { DocumentDesigner } from '@/components/editor/DocumentDesigner';
 import { DocumentPreview } from '@/components/preview/DocumentPreview';
+import { RecordPreviewSelect } from '@/components/preview/RecordPreviewSelect';
 import { PropertiesPanel } from '@/components/panels/PropertiesPanel';
 import { Badge } from '@/components/ui/badge';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
@@ -47,6 +48,15 @@ export default function App() {
     characters: 0,
   });
   const saveTimerRef = React.useRef<number | undefined>();
+  const datasetImportedAt = React.useMemo(() => {
+    if (!dataset?.sourceMeta?.importedAt) {
+      return null;
+    }
+    return new Date(dataset.sourceMeta.importedAt).toLocaleString(undefined, {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    });
+  }, [dataset]);
 
   const handleEditorReady = React.useCallback((instance: Editor) => {
     setEditor(instance);
@@ -168,7 +178,7 @@ export default function App() {
             </div>
           </aside>
           <main className='order-2 flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white/95 shadow-sm backdrop-blur dark:border-slate-800 dark:bg-slate-900/80'>
-            <div className='flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-3 text-xs uppercase tracking-wide text-slate-400 dark:border-slate-800 dark:text-slate-500 sm:px-6'>
+            <div className='flex shrink-0 flex-wrap items-center gap-2 border-b border-slate-200 px-4 py-3 text-xs uppercase tracking-wide text-slate-400 dark:border-slate-800 dark:text-slate-500 sm:px-6 sm:justify-between'>
               <div className='flex flex-wrap items-center gap-3'>
                 <span>Document workspace</span>
                 <ToggleGroup
@@ -182,13 +192,20 @@ export default function App() {
                   <ToggleGroupItem value='preview' className='px-3 py-1 text-[11px] uppercase data-[state=on]:bg-brand-500 data-[state=on]:text-white'>Preview</ToggleGroupItem>
                 </ToggleGroup>
               </div>
-              <span className='flex items-center gap-1 whitespace-nowrap'>
-                <span>Page {template.page.size}</span>
-                <span aria-hidden='true'>/</span>
-                <span className='capitalize'>
-                  {template.page.orientation}
+              <div className='flex w-full flex-col items-stretch gap-2 normal-case sm:w-auto sm:flex-row sm:items-center sm:justify-end sm:gap-3'>
+                {canvasMode === 'preview' && dataset && dataset.rows.length > 0 && (
+                  <div className='w-full sm:w-auto sm:min-w-[240px] sm:flex-1 lg:flex-none'>
+                    <RecordPreviewSelect />
+                  </div>
+                )}
+                <span className='flex items-center justify-center gap-1 whitespace-nowrap uppercase sm:justify-end'>
+                  <span>Page {template.page.size}</span>
+                  <span aria-hidden='true'>/</span>
+                  <span className='capitalize'>
+                    {template.page.orientation}
+                  </span>
                 </span>
-              </span>
+              </div>
             </div>
             <div className='flex-1 min-h-0 overflow-hidden'>
               {canvasMode === 'preview' ? (
@@ -219,6 +236,7 @@ export default function App() {
               Canvas: {template.page.size} • {template.page.orientation}
             </span>
             {dataset && <span>{dataset.rows.length} records</span>}
+            {datasetImportedAt && <span>Imported {datasetImportedAt}</span>}
           </div>
           <div className='flex flex-wrap items-center gap-4 text-slate-500 dark:text-slate-400'>
             {autosaveEnabled ? (
