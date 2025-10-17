@@ -16,14 +16,6 @@ export function AppHeader() {
   const dataset = useAppStore((state) => state.dataset);
   const [openGenerate, setOpenGenerate] = React.useState(false);
 
-  const datasetName = React.useMemo(() => {
-    if (!dataset) {
-      return null;
-    }
-    const { sourceMeta } = dataset;
-    return sourceMeta?.name ?? 'Active dataset';
-  }, [dataset]);
-
   const handleExportTemplate = () => {
     void exportTemplate(template);
   };
@@ -47,11 +39,6 @@ export function AppHeader() {
         </div>
       </div>
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
-        {datasetName && (
-          <div className="flex flex-col gap-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-500 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 sm:flex-1">
-            <span className="font-semibold text-slate-700 dark:text-slate-100">{datasetName}</span>
-          </div>
-        )}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
           <DatasetImportDialog />
         </div>
