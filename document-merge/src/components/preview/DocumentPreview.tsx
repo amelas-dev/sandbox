@@ -157,7 +157,7 @@ export function DocumentPreview({ className }: DocumentPreviewProps) {
         }}
         aria-label='Document preview'
       >
-        <div className='absolute inset-0 overflow-auto scrollbar-sleek'>
+        <div className='absolute inset-0 overflow-auto scrollbar-sleek px-4 pb-8 pt-10 sm:px-6 sm:pb-10 sm:pt-12'>
           <div
             style={{ ...padding, ...baseStyles }}
             className='relative h-full w-full min-h-[800px] prose prose-slate max-w-none dark:prose-invert prose-headings:font-semibold'

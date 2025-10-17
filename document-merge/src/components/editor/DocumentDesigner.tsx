@@ -397,7 +397,7 @@ export function DocumentDesigner({ className, onEditorReady }: DocumentDesignerP
         {showGrid && (
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,rgba(99,102,241,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(99,102,241,0.08)_1px,transparent_1px)] [background-size:32px_32px]" />
         )}
-        <div className="absolute inset-0 overflow-auto scrollbar-sleek">
+        <div className="absolute inset-0 overflow-auto scrollbar-sleek px-4 pb-8 pt-10 sm:px-6 sm:pb-10 sm:pt-12">
           <div
             ref={editorContainerRef}
             style={{ ...padding, ...baseStyles }}
