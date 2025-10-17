@@ -133,7 +133,7 @@ export function DocumentPreview({ className }: DocumentPreviewProps) {
 
   if (!dataset || !dataset.rows.length) {
     return (
-      <div className={cn('flex h-full items-center justify-center bg-slate-100/70 p-6 text-center text-sm text-slate-500 dark:bg-slate-900/80 dark:text-slate-400', className)}>
+      <div className={cn('flex h-full items-start justify-center overflow-auto bg-slate-100/70 px-4 pb-4 pt-[20%] text-center text-sm text-slate-500 dark:bg-slate-900/80 dark:text-slate-400 sm:px-6 sm:pb-6', className)}>
         <div className='max-w-sm space-y-2'>
           <p className='text-base font-semibold text-slate-700 dark:text-slate-200'>No dataset available</p>
           <p>Import investor data to preview the personalized document, or switch back to edit mode to continue designing the template.</p>
@@ -145,7 +145,7 @@ export function DocumentPreview({ className }: DocumentPreviewProps) {
   const { width, height } = pageDimensions;
 
   return (
-    <div className={cn('relative flex h-full w-full items-center justify-center overflow-auto scrollbar-sleek bg-slate-100/70 p-4 sm:p-6 dark:bg-slate-900/80', className)}
+    <div className={cn('relative flex h-full w-full items-center justify-center overflow-auto scrollbar-sleek bg-slate-100/70 px-4 pb-4 pt-[20%] sm:px-6 sm:pb-6 sm:pt-[20%] dark:bg-slate-900/80', className)}
     >
       <div
         className={pageShellClass}
@@ -157,7 +157,7 @@ export function DocumentPreview({ className }: DocumentPreviewProps) {
         }}
         aria-label='Document preview'
       >
-        <div className='absolute inset-0 overflow-auto scrollbar-sleek px-4 pb-8 pt-10 sm:px-6 sm:pb-10 sm:pt-12'>
+        <div className='absolute inset-0 overflow-auto scrollbar-sleek'>
           <div
             style={{ ...padding, ...baseStyles }}
             className='relative h-full w-full min-h-[800px] prose prose-slate max-w-none dark:prose-invert prose-headings:font-semibold'
