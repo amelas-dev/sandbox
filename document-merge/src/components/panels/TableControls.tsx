@@ -49,48 +49,48 @@ const INSERT_GRID_COLUMNS = 8;
 
 const BORDER_COLOR_PALETTE = [
   '#0f172a',
-  '#1e293b',
-  '#334155',
-  '#475569',
-  '#64748b',
+  '#172554',
+  '#1e3a8a',
+  '#1d4ed8',
   '#2563eb',
-  '#7c3aed',
+  '#3b82f6',
+  '#60a5fa',
+  '#93c5fd',
+  '#bfdbfe',
+  '#dbeafe',
+  '#e0f2fe',
+  '#38bdf8',
   '#0ea5e9',
-  '#10b981',
-  '#f59e0b',
-  '#f97316',
-  '#ef4444',
-  '#cbd5f5',
   '#e2e8f0',
   '#f8fafc',
 ];
 
 const STRIPE_COLOR_PALETTE = [
-  'rgba(148, 163, 184, 0.12)',
-  'rgba(99, 102, 241, 0.16)',
-  'rgba(59, 130, 246, 0.16)',
-  'rgba(14, 165, 233, 0.16)',
-  'rgba(16, 185, 129, 0.16)',
-  'rgba(249, 115, 22, 0.16)',
-  'rgba(236, 72, 153, 0.16)',
-  'rgba(79, 70, 229, 0.16)',
-  '#f1f5f9',
-  '#fef3c7',
+  'rgba(15, 23, 42, 0.12)',
+  'rgba(23, 37, 84, 0.14)',
+  'rgba(30, 58, 138, 0.16)',
+  'rgba(29, 78, 216, 0.16)',
+  'rgba(37, 99, 235, 0.18)',
+  'rgba(59, 130, 246, 0.18)',
+  'rgba(96, 165, 250, 0.2)',
+  'rgba(125, 211, 252, 0.2)',
+  '#dbeafe',
+  '#e0f2fe',
 ];
 
 const CELL_BACKGROUND_PALETTE = [
   '#ffffff',
   '#f8fafc',
   '#f1f5f9',
+  '#e2e8f0',
   '#e0f2fe',
   '#dbeafe',
-  '#e0f2f1',
-  '#dcfce7',
-  '#fef3c7',
-  '#fee2e2',
-  '#fde68a',
-  '#fae8ff',
-  '#fdf2f8',
+  '#bfdbfe',
+  '#93c5fd',
+  '#7dd3fc',
+  '#60a5fa',
+  '#38bdf8',
+  '#bae6fd',
 ];
 
 const buttonClass =
@@ -589,4 +589,3 @@ export function TableControls({ editor }: TableControlsProps) {
     </div>
   );
 }
-
