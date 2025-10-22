@@ -21,6 +21,7 @@ import { useAppStore, selectDataset, selectTemplate } from '@/store/useAppStore'
 import { MergeTag } from '@/editor/merge-tag-node';
 import { InlineTableControls } from './InlineTableControls';
 import { InlineImageControls } from './InlineImageControls';
+import { MergeTagSuggestionMenu } from './MergeTagSuggestionMenu';
 import { ListStyleBullet, ListStyleOrdered } from '@/editor/extensions/list-style';
 import { ExtendedTextStyle } from '@/editor/extensions/text-style';
 import { getSampleValue } from '@/lib/dataset';
@@ -28,7 +29,8 @@ import type { Editor } from '@tiptap/core';
 import { cn } from '@/lib/utils';
 import { ensureGoogleFontsLoaded } from '@/lib/google-font-loader';
 import { getDocumentBaseStyles, getPageDimensions, getPagePadding } from '@/lib/template-style';
-import type { PageBackgroundOption } from '@/lib/types';
+import { filterFieldsByQuery } from '@/lib/field-utils';
+import type { DatasetField, PageBackgroundOption } from '@/lib/types';
 import { NodeSelection } from '@tiptap/pm/state';
 
 function extractPrimaryFamily(fontStack: string): string {
@@ -46,6 +48,12 @@ const PAGE_BACKGROUND_CLASSES: Record<PageBackgroundOption, string> = {
   linen: 'bg-[#fef8f1] dark:bg-slate-900/70',
 };
 
+interface MergeTagMenuState {
+  range: { from: number; to: number };
+  query: string;
+  coords: { left: number; right: number; top: number; bottom: number };
+}
+
 export interface DocumentDesignerProps {
   className?: string;
   onEditorReady?: (editor: Editor) => void;
@@ -62,6 +70,18 @@ export function DocumentDesigner({ className, onEditorReady }: DocumentDesignerP
   const setTemplateContent = useAppStore((state) => state.setTemplateContent);
   const zoom = useAppStore((state) => state.zoom);
   const showGrid = useAppStore((state) => state.showGrid);
+  const fields = React.useMemo<DatasetField[]>(() => dataset?.fields ?? [], [dataset]);
+  const [mergeTagMenu, setMergeTagMenu] = React.useState<MergeTagMenuState | null>(null);
+  const mergeTagMenuRef = React.useRef<MergeTagMenuState | null>(mergeTagMenu);
+  React.useEffect(() => {
+    mergeTagMenuRef.current = mergeTagMenu;
+  }, [mergeTagMenu]);
+  const [highlightedIndex, setHighlightedIndex] = React.useState(0);
+  const highlightedIndexRef = React.useRef(0);
+  React.useEffect(() => {
+    highlightedIndexRef.current = highlightedIndex;
+  }, [highlightedIndex]);
+  const filteredFieldsRef = React.useRef<DatasetField[]>([]);
   const mergeTagExtension = React.useMemo(
     () =>
       MergeTag.configure({
@@ -104,23 +124,6 @@ export function DocumentDesigner({ className, onEditorReady }: DocumentDesignerP
             'min-h-[800px] prose prose-slate max-w-none focus:outline-none dark:prose-invert prose-headings:font-semibold',
         },
         handleDOMEvents: {
-          keydown: (_view, event) => {
-            if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'e') {
-              event.preventDefault();
-              const firstField = dataset?.fields[0];
-              if (firstField) {
-                editor?.chain().focus().command(() => {
-                  editor.commands.insertContent({
-                    type: 'mergeTag',
-                    attrs: { fieldKey: firstField.key, label: firstField.label, suppressIfEmpty: false },
-                  });
-                  return true;
-                });
-              }
-              return true;
-            }
-            return false;
-          },
           click: (view, event) => {
             const target = event.target as HTMLElement | null;
             if (!target) {
@@ -161,6 +164,265 @@ export function DocumentDesigner({ className, onEditorReady }: DocumentDesignerP
     },
     [mergeTagExtension],
   );
+
+  const handleSelectField = React.useCallback(
+    (field: DatasetField) => {
+      const menu = mergeTagMenuRef.current;
+      if (!editor || !menu) {
+        return;
+      }
+      editor
+        .chain()
+        .focus()
+        .insertContentAt(
+          { from: menu.range.from, to: menu.range.to },
+          {
+            type: 'mergeTag',
+            attrs: {
+              fieldKey: field.key,
+              label: field.label,
+              suppressIfEmpty: false,
+            },
+          },
+        )
+        .run();
+      setMergeTagMenu(null);
+    },
+    [editor],
+  );
+
+  const handleSelectFieldRef = React.useRef(handleSelectField);
+  React.useEffect(() => {
+    handleSelectFieldRef.current = handleSelectField;
+  }, [handleSelectField]);
+
+  const filteredFields = React.useMemo(() => {
+    if (!mergeTagMenu) {
+      return [] as DatasetField[];
+    }
+    return filterFieldsByQuery(fields, mergeTagMenu.query).slice(0, 20);
+  }, [fields, mergeTagMenu]);
+
+  React.useEffect(() => {
+    filteredFieldsRef.current = filteredFields;
+  }, [filteredFields]);
+
+  React.useEffect(() => {
+    if (!mergeTagMenu) {
+      filteredFieldsRef.current = [];
+    }
+  }, [mergeTagMenu]);
+
+  const lastQueryRef = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    if (!mergeTagMenu) {
+      lastQueryRef.current = null;
+      setHighlightedIndex(0);
+      return;
+    }
+    if (mergeTagMenu.query !== lastQueryRef.current) {
+      lastQueryRef.current = mergeTagMenu.query;
+      setHighlightedIndex(0);
+    }
+  }, [mergeTagMenu]);
+
+  React.useEffect(() => {
+    if (!mergeTagMenu || filteredFields.length === 0) {
+      return;
+    }
+    if (highlightedIndex >= filteredFields.length) {
+      setHighlightedIndex(filteredFields.length - 1);
+    }
+  }, [filteredFields, highlightedIndex, mergeTagMenu]);
+
+  const updateSuggestionState = React.useCallback(() => {
+    if (!editor) {
+      return;
+    }
+
+    if (!fields.length) {
+      if (mergeTagMenuRef.current) {
+        setMergeTagMenu(null);
+      }
+      return;
+    }
+
+    const { state } = editor;
+    const { from, empty } = state.selection;
+
+    if (!empty) {
+      if (mergeTagMenuRef.current) {
+        setMergeTagMenu(null);
+      }
+      return;
+    }
+
+    const lookupLimit = 200;
+    const textBefore = state.doc.textBetween(
+      Math.max(0, from - lookupLimit),
+      from,
+      '\n',
+      ' ',
+    );
+    const match = /(?:^|[\s\u00A0([{])@([^\s@]*)$/i.exec(textBefore);
+
+    if (!match) {
+      if (mergeTagMenuRef.current) {
+        setMergeTagMenu(null);
+      }
+      return;
+    }
+
+    const query = match[1] ?? '';
+    const start = from - query.length - 1;
+    if (start < 0) {
+      if (mergeTagMenuRef.current) {
+        setMergeTagMenu(null);
+      }
+      return;
+    }
+
+    let coords: MergeTagMenuState['coords'] | null = null;
+    try {
+      coords = editor.view.coordsAtPos(from);
+    } catch {
+      coords = null;
+    }
+
+    if (!coords) {
+      if (mergeTagMenuRef.current) {
+        setMergeTagMenu(null);
+      }
+      return;
+    }
+
+    setMergeTagMenu((previous) => {
+      if (
+        previous &&
+        previous.range.from === start &&
+        previous.range.to === from &&
+        previous.query === query &&
+        previous.coords.left === coords.left &&
+        previous.coords.right === coords.right &&
+        previous.coords.top === coords.top &&
+        previous.coords.bottom === coords.bottom
+      ) {
+        return previous;
+      }
+      return {
+        range: { from: start, to: from },
+        query,
+        coords,
+      };
+    });
+  }, [editor, fields.length]);
+
+  React.useEffect(() => {
+    if (!editor) {
+      return;
+    }
+
+    const run = () => updateSuggestionState();
+    const dismiss = () => setMergeTagMenu(null);
+
+    editor.on('selectionUpdate', run);
+    editor.on('transaction', run);
+    editor.on('focus', run);
+    editor.on('blur', dismiss);
+
+    return () => {
+      editor.off('selectionUpdate', run);
+      editor.off('transaction', run);
+      editor.off('focus', run);
+      editor.off('blur', dismiss);
+    };
+  }, [editor, updateSuggestionState]);
+
+  React.useEffect(() => {
+    if (!editor) {
+      return;
+    }
+    if (!fields.length) {
+      setMergeTagMenu(null);
+      return;
+    }
+    if (mergeTagMenuRef.current) {
+      updateSuggestionState();
+    }
+  }, [editor, fields.length, updateSuggestionState]);
+
+  React.useEffect(() => {
+    if (!editor) {
+      return;
+    }
+
+    const dom = editor.view.dom;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'e') {
+        event.preventDefault();
+        const firstField = fields[0];
+        if (firstField) {
+          editor
+            .chain()
+            .focus()
+            .insertContent({
+              type: 'mergeTag',
+              attrs: {
+                fieldKey: firstField.key,
+                label: firstField.label,
+                suppressIfEmpty: false,
+              },
+            })
+            .run();
+        }
+        return;
+      }
+
+      const menu = mergeTagMenuRef.current;
+      if (!menu) {
+        return;
+      }
+
+      const items = filteredFieldsRef.current;
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        if (items.length > 0) {
+          const next = (highlightedIndexRef.current + 1) % items.length;
+          setHighlightedIndex(next);
+        }
+        return;
+      }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        if (items.length > 0) {
+          const total = items.length;
+          const next = (highlightedIndexRef.current - 1 + total) % total;
+          setHighlightedIndex(next);
+        }
+        return;
+      }
+      if (event.key === 'Enter' || event.key === 'Tab') {
+        if (items.length === 0) {
+          return;
+        }
+        event.preventDefault();
+        const target = items[highlightedIndexRef.current] ?? items[0];
+        if (target) {
+          handleSelectFieldRef.current(target);
+        }
+        return;
+      }
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setMergeTagMenu(null);
+      }
+    };
+
+    dom.addEventListener('keydown', handleKeyDown);
+    return () => {
+      dom.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [editor, fields]);
 
   React.useEffect(() => {
     if (!editor) {
@@ -411,6 +673,19 @@ export function DocumentDesigner({ className, onEditorReady }: DocumentDesignerP
                 <InlineImageControls editor={editor} containerRef={editorContainerRef} />
               </>
             ) : null}
+            <MergeTagSuggestionMenu
+              open={Boolean(mergeTagMenu)}
+              anchor={mergeTagMenu?.coords ?? { left: 0, right: 0, top: 0, bottom: 0 }}
+              fields={filteredFields}
+              highlightedIndex={
+                filteredFields.length > 0
+                  ? Math.min(highlightedIndex, filteredFields.length - 1)
+                  : 0
+              }
+              onHover={(index) => setHighlightedIndex(index)}
+              onSelect={handleSelectField}
+              query={mergeTagMenu?.query ?? ''}
+            />
           </div>
         </div>
         <div className="absolute inset-x-0 bottom-3 flex justify-center text-xs text-slate-400">

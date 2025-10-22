@@ -15,6 +15,7 @@ import {
   selectPreviewRow,
 } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
+import { filterFieldsByQuery, formatFieldType } from '@/lib/field-utils';
 
 interface FieldPaletteProps {
   onInsertField: (fieldKey: string) => void;
@@ -34,17 +35,6 @@ function highlightMatch(text: string, query: string): React.ReactNode {
       {after}
     </>
   );
-}
-
-function formatFieldType(type: string): string {
-  const normalized = type.replace(/[-_\s]+/g, ' ').trim();
-  if (!normalized) return '';
-  return normalized
-    .toLowerCase()
-    .split(' ')
-    .filter(Boolean)
-    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
-    .join(' ');
 }
 
 function FieldChip({
@@ -118,16 +108,10 @@ export function FieldPalette({ onInsertField }: FieldPaletteProps) {
   const filter = useAppStore((state) => state.mergeTagFilter);
   const setFilter = useAppStore((state) => state.setMergeTagFilter);
 
-  const filteredFields = React.useMemo(() => {
-    if (!filter) return fields;
-    const query = filter.toLowerCase();
-    return fields.filter(
-      (field) =>
-        field.label.toLowerCase().includes(query) ||
-        field.key.toLowerCase().includes(query) ||
-        formatFieldType(field.type).toLowerCase().includes(query),
-    );
-  }, [fields, filter]);
+  const filteredFields = React.useMemo(
+    () => filterFieldsByQuery(fields, filter ?? ''),
+    [fields, filter],
+  );
 
   if (!fields.length) {
     return (
